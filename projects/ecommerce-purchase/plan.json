@@ -1,5 +1,11 @@
 {
   "projectName": "ecommerce-purchase",
+  "title": "DemoBlaze",
+  "subtitle": "From discovery to checkout",
+  "visual": {
+    "accentColor": "#67e8c1",
+    "backgroundStyle": "aurora"
+  },
   "baseUrl": "https://www.demoblaze.com/",
   "viewport": {
     "width": 1080,
@@ -9,6 +15,8 @@
   "scenes": [
     {
       "id": "storefront",
+      "title": "Explore the storefront",
+      "caption": "Browse the catalog and discover what is available.",
       "durationFrames": 90,
       "actions": [
         {
@@ -18,6 +26,8 @@
     },
     {
       "id": "product-detail",
+      "title": "Discover product details",
+      "caption": "Move from the catalog into a product page.",
       "durationFrames": 90,
       "actions": [
         {
@@ -31,11 +41,13 @@
     },
     {
       "id": "cart",
+      "title": "Review the cart",
+      "caption": "Show the final step of the purchase journey.",
       "durationFrames": 90,
       "actions": [
         {
           "type": "click",
-          "selector": "button.btn-success"
+          "selector": "a.btn.btn-success.btn-lg"
         },
         {
           "type": "click",

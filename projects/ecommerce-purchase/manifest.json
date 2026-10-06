@@ -1,0 +1,35 @@
+{
+  "projectName": "ecommerce-purchase",
+  "title": "DemoBlaze",
+  "subtitle": "From discovery to checkout",
+  "visual": {
+    "accentColor": "#67e8c1",
+    "backgroundStyle": "aurora"
+  },
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "scenes": [
+    {
+      "id": "storefront",
+      "title": "Explore the storefront",
+      "caption": "Browse the catalog and discover what is available.",
+      "asset": "projects/ecommerce-purchase/assets/storefront.png",
+      "durationFrames": 90
+    },
+    {
+      "id": "product-detail",
+      "title": "Discover product details",
+      "caption": "Move from the catalog into a product page.",
+      "asset": "projects/ecommerce-purchase/assets/product-detail.png",
+      "durationFrames": 90
+    },
+    {
+      "id": "cart",
+      "title": "Review the cart",
+      "caption": "Show the final step of the purchase journey.",
+      "asset": "projects/ecommerce-purchase/assets/cart.png",
+      "durationFrames": 90
+    }
+  ]
+}

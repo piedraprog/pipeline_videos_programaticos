@@ -4,7 +4,7 @@ import { ManifestSchema } from '../src/schema';
 import { AgnosticReel, getReelDuration, type AgnosticReelProps } from './AgnosticReel';
 
 const defaultProps: AgnosticReelProps = {
-  manifest: { projectName: 'demo', fps: 30, width: 1080, height: 1920, scenes: [{ id: 'scene', asset: 'projects/demo/assets/scene.png', durationFrames: 30 }] },
+  manifest: { projectName: 'demo', title: 'Product demo', subtitle: 'A closer look at the experience', visual: { accentColor: '#67e8c1', backgroundStyle: 'aurora' }, fps: 30, width: 1080, height: 1920, scenes: [{ id: 'scene', asset: 'projects/demo/assets/scene.png', durationFrames: 30 }] },
 };
 
 const calculateMetadata: CalculateMetadataFunction<AgnosticReelProps> = ({ props }) => {
