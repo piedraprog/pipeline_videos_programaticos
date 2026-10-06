@@ -1,0 +1,30 @@
+{
+  "projectName": "ecommerce-purchase",
+  "baseUrl": "https://www.demoblaze.com/",
+  "viewport": { "width": 1080, "height": 1920 },
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "storefront",
+      "durationFrames": 90,
+      "actions": [{ "type": "screenshot" }]
+    },
+    {
+      "id": "product-detail",
+      "durationFrames": 90,
+      "actions": [
+        { "type": "click", "selector": ".hrefch" },
+        { "type": "screenshot" }
+      ]
+    },
+    {
+      "id": "cart",
+      "durationFrames": 90,
+      "actions": [
+        { "type": "click", "selector": "button.btn-success" },
+        { "type": "click", "selector": "#cartur" },
+        { "type": "screenshot" }
+      ]
+    }
+  ]
+}

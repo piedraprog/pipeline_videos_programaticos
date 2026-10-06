@@ -1,0 +1,28 @@
+{
+  "projectName": "demo-test",
+  "resolution": {
+    "width": 1080,
+    "height": 1920
+  },
+  "baseUrl": "https://shutterstock.com",
+  "scenes": [
+    {
+      "id": "scene_1",
+      "action": "screenshot",
+      "selector": "body",
+      "durationFrames": 90
+    },
+    {
+      "id": "scene_2",
+      "action": "click",
+      "selector": "a[href='/']",
+      "waitAfterMs": 1000
+    },
+    {
+      "id": "scene_3",
+      "action": "screenshot",
+      "selector": "body",
+      "durationFrames": 120
+    }
+  ]
+}
