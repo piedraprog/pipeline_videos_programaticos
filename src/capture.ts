@@ -50,6 +50,9 @@ async function main() {
 
   const manifest: VideoManifest = {
     projectName: plan.projectName,
+    title: plan.title,
+    subtitle: plan.subtitle,
+    visual: plan.visual,
     fps: plan.fps,
     width: 1080,
     height: 1920,
@@ -88,6 +91,8 @@ async function main() {
               }
               manifest.scenes.push({
                 id: scene.id,
+                ...(scene.title ? { title: scene.title } : {}),
+                ...(scene.caption ? { caption: scene.caption } : {}),
                 asset: `projects/${plan.projectName}/assets/${filename}`,
                 durationFrames: scene.durationFrames,
               });

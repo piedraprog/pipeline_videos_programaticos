@@ -5,13 +5,15 @@
     "": {
       "name": "pipeline_videos_programaticos",
       "dependencies": {
-        "@remotion/bundler": "^4.0.0",
-        "@remotion/renderer": "^4.0.0",
-        "@remotion/transitions": "^4.0.0",
+        "@remotion/bundler": "4.0.533",
+        "@remotion/gsap": "4.0.533",
+        "@remotion/renderer": "4.0.533",
+        "@remotion/transitions": "4.0.533",
+        "gsap": "3.15.0",
         "playwright": "^1.63.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
-        "remotion": "^4.0.0",
+        "remotion": "4.0.533",
         "zod": "^4.6.5",
       },
       "devDependencies": {
@@ -142,6 +144,8 @@
     "@remotion/compositor-win32-x64-msvc": ["@remotion/compositor-win32-x64-msvc@4.0.533", "", { "os": "win32", "cpu": "x64" }, "sha512-q780T6u5yISVHFoaGUnU01OFeb8H6sujw8JJ5E8N/qFEo/XaLv+D+cPR/FeMCcUHlHiIDCgZLUn7CZQhInZHxQ=="],
 
     "@remotion/elevenlabs": ["@remotion/elevenlabs@4.0.533", "", { "dependencies": { "@remotion/captions": "4.0.533", "zod": "4.5.4" } }, "sha512-9BN2ZMmX8hxZFUjcOHiWPFR2W34IpUTnPZWyEZXO0gGNyYUD3QS0muvOodp82r9KtDqNlfUh0EoyI8HPWow2vQ=="],
+
+    "@remotion/gsap": ["@remotion/gsap@4.0.533", "", { "dependencies": { "remotion": "4.0.533" }, "peerDependencies": { "gsap": ">=3.12.0 <4", "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-B3CuwSD+Ve3dUcIWewyU7ADmyKoL+gRgIDLa9oWpTbDQb3wvHOminssTb0E059itI8pPuNnkMJ8uivWs0j2vsw=="],
 
     "@remotion/licensing": ["@remotion/licensing@4.0.533", "", {}, "sha512-bp1xUKSAnlZdGnXY5MlAM//Mq8aUvPCK/uxa5n6TTsfZLf7xB8T/rgAIBokgizoUtW/Hliwvfii9dteqJ9fmdQ=="],
 
@@ -378,6 +382,8 @@
     "glob-to-regexp": ["glob-to-regexp@0.4.1", "", {}, "sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw=="],
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
+
+    "gsap": ["gsap@3.15.0", "", {}, "sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A=="],
 
     "has-flag": ["has-flag@4.0.0", "", {}, "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="],
 

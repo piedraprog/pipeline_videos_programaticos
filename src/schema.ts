@@ -11,11 +11,19 @@ export const CaptureActionSchema = z.discriminatedUnion('type', [
 
 export const VideoPlanSchema = z.object({
   projectName: safeName,
+  title: z.string().trim().min(1).max(80).default('Product demo'),
+  subtitle: z.string().trim().max(120).default('A closer look at the experience'),
+  visual: z.object({
+    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#67e8c1'),
+    backgroundStyle: z.enum(['aurora', 'midnight', 'warm']).default('aurora'),
+  }).default({ accentColor: '#67e8c1', backgroundStyle: 'aurora' }),
   baseUrl: z.string().url(),
   viewport: z.object({ width: z.number().int().positive().default(1080), height: z.number().int().positive().default(1920) }).default({ width: 1080, height: 1920 }),
   fps: z.number().int().min(1).max(60).default(30),
   scenes: z.array(z.object({
     id: safeName,
+    title: z.string().trim().min(1).max(60).optional(),
+    caption: z.string().trim().max(100).optional(),
     durationFrames: z.number().int().positive(),
     actions: z.array(CaptureActionSchema).min(1),
   })).min(1),
@@ -32,10 +40,16 @@ export const VideoPlanSchema = z.object({
 
 export const ManifestSchema = z.object({
   projectName: safeName,
+  title: z.string().trim().min(1).max(80).default('Product demo'),
+  subtitle: z.string().trim().max(120).default('A closer look at the experience'),
+  visual: z.object({
+    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#67e8c1'),
+    backgroundStyle: z.enum(['aurora', 'midnight', 'warm']).default('aurora'),
+  }).default({ accentColor: '#67e8c1', backgroundStyle: 'aurora' }),
   fps: z.number().int().positive(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  scenes: z.array(z.object({ id: safeName, asset: z.string().min(1), durationFrames: z.number().int().positive() })).min(1),
+  scenes: z.array(z.object({ id: safeName, title: z.string().trim().min(1).max(60).optional(), caption: z.string().trim().max(100).optional(), asset: z.string().min(1), durationFrames: z.number().int().positive() })).min(1),
 });
 
 export type VideoPlan = z.infer<typeof VideoPlanSchema>;
