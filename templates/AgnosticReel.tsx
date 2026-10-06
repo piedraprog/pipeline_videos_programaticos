@@ -1,8 +1,7 @@
 import React from 'react';
 import { useGsapTimeline } from '@remotion/gsap';
-import { Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { Img, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
-import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
 import type { VideoManifest } from '../src/schema';
 
@@ -13,20 +12,6 @@ const colors = {
   midnight: { base: '#090b16', glow: '#243467', secondary: '#311d48' },
   warm: { base: '#17100e', glow: '#573526', secondary: '#35213b' },
 } as const;
-
-const PhoneMockup: React.FC<{ src: string; label: string }> = ({ src, label }) => (
-  <div data-phone style={{
-    width: 590, height: 1240, boxSizing: 'border-box', border: '18px solid #17191d',
-    borderRadius: 76, backgroundColor: '#090a0c', padding: '32px 18px',
-    boxShadow: '0 36px 100px rgba(0,0,0,0.48), inset 0 0 0 2px #44474d',
-    position: 'relative', overflow: 'hidden',
-  }}>
-    <div aria-hidden="true" style={{ position: 'absolute', zIndex: 2, top: 16, left: '50%', transform: 'translateX(-50%)', width: 130, height: 28, borderRadius: 20, background: '#090a0c' }} />
-    <div style={{ width: '100%', height: '100%', borderRadius: 42, overflow: 'hidden', background: '#fff' }}>
-      <Img src={staticFile(src)} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-    </div>
-  </div>
-);
 
 const AnimatedBackground: React.FC<{ sceneIndex: number; manifest: VideoManifest }> = ({ sceneIndex, manifest }) => {
   const frame = useCurrentFrame();
@@ -47,52 +32,59 @@ const AnimatedBackground: React.FC<{ sceneIndex: number; manifest: VideoManifest
   );
 };
 
-const Scene: React.FC<{ scene: VideoManifest['scenes'][number]; index: number; manifest: VideoManifest }> = ({ scene, index, manifest }) => {
-  const { width, height, fps } = useVideoConfig();
-  const frame = useCurrentFrame();
-  const floatY = Math.sin((frame / (fps * 3)) * Math.PI * 2) * 6;
-  const title = scene.title ?? scene.id.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+const SceneHeader: React.FC<{ scene: VideoManifest['scenes'][number]; manifest: VideoManifest }> = ({ scene, manifest }) => {
+  const title = scene.title ?? scene.id.replaceAll('-', ' ');
   const scope = useGsapTimeline<HTMLDivElement>(({ timeline, selector }) => {
-    // The Remotion GSAP adapter owns playback and seeks this paused timeline per frame.
-    timeline.fromTo(selector('[data-scene-title]'), { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.72, ease: 'power3.out' }, 0);
-    timeline.fromTo(selector('[data-scene-rule]'), { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.56, ease: 'power2.out' }, 0.18);
-    timeline.fromTo(selector('[data-phone]'), { y: 54, scale: 0.96, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.9, ease: 'power3.out' }, 0.08);
-  }, { dependencies: [scene.id, title] });
-
-  return (
-    <div ref={scope} style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', color: '#f6f8fa', fontFamily: 'Arial, sans-serif' }}>
-      <AnimatedBackground sceneIndex={index} manifest={manifest} />
-      <div style={{ position: 'absolute', zIndex: 2, top: 142, left: 100, right: 100, textAlign: 'center' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: manifest.visual.accentColor, marginBottom: 20 }}>{manifest.title}</div>
-        <div data-scene-title style={{ fontSize: 54, lineHeight: 1.12, fontWeight: 700, letterSpacing: -1.5 }}>{title}</div>
-        <div data-scene-rule style={{ width: 84, height: 4, margin: '24px auto 0', borderRadius: 4, background: manifest.visual.accentColor, transformOrigin: 'center' }} />
-        {scene.caption || (index === 0 ? manifest.subtitle : null) ? <div style={{ margin: '20px auto 0', maxWidth: 740, fontSize: 24, lineHeight: 1.4, color: 'rgba(246,248,250,0.74)' }}>{scene.caption ?? (index === 0 ? manifest.subtitle : '')}</div> : null}
-      </div>
-      <div style={{ position: 'relative', zIndex: 1, marginTop: 285, transform: `translateY(${floatY}px)` }}>
-        <PhoneMockup src={scene.asset} label={`Captured web scene ${scene.id}`} />
-      </div>
-      <div style={{ position: 'absolute', zIndex: 2, bottom: 86, left: 100, right: 100, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ height: 3, flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 4 }}><div style={{ height: '100%', width: `${((index + 1) / manifest.scenes.length) * 100}%`, borderRadius: 4, background: manifest.visual.accentColor }} /></div>
-        <div style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums', letterSpacing: 2, color: 'rgba(255,255,255,0.75)' }}>{String(index + 1).padStart(2, '0')} / {String(manifest.scenes.length).padStart(2, '0')}</div>
-      </div>
-    </div>
-  );
+    timeline.fromTo(selector('[data-title]'), { y: 12 }, { y: 0, duration: 0.45, ease: 'power3.out' }, 0);
+    timeline.fromTo(selector('[data-rule]'), { scaleX: 0.5 }, { scaleX: 1, duration: 0.45, ease: 'power2.out' }, 0);
+  }, { dependencies: [scene.id] });
+  return <div ref={scope} style={{ position: 'absolute', top: 120, left: 100, right: 100, textAlign: 'center' }}>
+    <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: manifest.visual.accentColor, marginBottom: 24 }}>{manifest.title}</div>
+    <div data-title style={{ fontSize: 52, lineHeight: 1.12, fontWeight: 700, letterSpacing: -1, overflowWrap: 'anywhere' }}>{title}</div>
+    <div data-rule style={{ width: 84, height: 4, margin: '22px auto', background: manifest.visual.accentColor }} />
+    <div style={{ maxWidth: 780, margin: 'auto', fontSize: 26, lineHeight: 1.4, color: 'rgba(246,248,250,0.78)' }}>{scene.caption ?? manifest.subtitle}</div>
+  </div>;
 };
 
-export const getReelDuration = (manifest: VideoManifest) => manifest.scenes.reduce((sum, scene) => sum + scene.durationFrames, 0)
-  - manifest.scenes.slice(1).reduce((sum, scene, index) => sum + Math.min(TRANSITION_FRAMES, manifest.scenes[index]!.durationFrames, scene.durationFrames), 0);
+export const getTransitionFrames = (previous: number, next: number) => Math.min(TRANSITION_FRAMES, Math.floor((previous - 1) / 2), Math.floor((next - 1) / 2));
+export const getSceneStarts = (manifest: VideoManifest) => {
+  let start = 0;
+  return manifest.scenes.map((scene, index) => {
+    if (index > 0) start -= getTransitionFrames(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames);
+    const result = start;
+    start += scene.durationFrames;
+    return result;
+  });
+};
+export const getReelDuration = (manifest: VideoManifest) => getSceneStarts(manifest).at(-1)! + manifest.scenes.at(-1)!.durationFrames;
 
-export const AgnosticReel: React.FC<AgnosticReelProps> = ({ manifest }) => (
-  <TransitionSeries>
-    {manifest.scenes.flatMap((scene, index) => {
-      const sequence = <TransitionSeries.Sequence key={`scene-${scene.id}`} durationInFrames={scene.durationFrames}>
-        <Scene scene={scene} index={index} manifest={manifest} />
-      </TransitionSeries.Sequence>;
-      if (index === 0) return [sequence];
-      return [
-        <TransitionSeries.Transition key={`transition-${manifest.scenes[index - 1]!.id}-${scene.id}`} presentation={index % 2 === 0 ? fade() : slide({ direction: 'from-right' })} timing={linearTiming({ durationInFrames: Math.min(TRANSITION_FRAMES, manifest.scenes[index - 1]!.durationFrames, scene.durationFrames) })} />,
-        sequence,
-      ];
-    })}
-  </TransitionSeries>
-);
+export const AgnosticReel: React.FC<AgnosticReelProps> = ({ manifest }) => {
+  const frame = useCurrentFrame();
+  const starts = getSceneStarts(manifest);
+  const active = starts.reduce((result, start, index) => frame >= start ? index : result, 0);
+  const progress = (frame + 1) / getReelDuration(manifest);
+  return <div style={{ width: 1080, height: 1920, position: 'relative', overflow: 'hidden', color: '#f6f8fa', fontFamily: 'Arial, sans-serif' }}>
+    <AnimatedBackground sceneIndex={0} manifest={manifest} />
+    {manifest.scenes.map((scene, index) => <Sequence key={scene.id} from={starts[index]} durationInFrames={(starts[index + 1] ?? getReelDuration(manifest)) - starts[index]!}>
+      <SceneHeader scene={scene} manifest={manifest} />
+    </Sequence>)}
+    <div style={{ position: 'absolute', top: 420, left: 230, width: 620, height: 1320, padding: 12, border: '14px solid #17191d', boxSizing: 'border-box', borderRadius: 64, background: '#090a0c', boxShadow: '0 36px 100px rgba(0,0,0,0.48), inset 0 0 0 2px #44474d' }}>
+      <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 38, overflow: 'hidden', background: '#fff' }}>
+        <TransitionSeries>
+          {manifest.scenes.flatMap((scene, index) => {
+            const sequence = <TransitionSeries.Sequence key={scene.id} durationInFrames={scene.durationFrames}>
+              <Img src={staticFile(scene.asset)} alt={scene.title ?? scene.id} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center top', background: '#fff' }} />
+            </TransitionSeries.Sequence>;
+            if (index === 0) return [sequence];
+            const overlap = getTransitionFrames(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames);
+            return overlap > 0 ? [<TransitionSeries.Transition key={`transition-${scene.id}`} presentation={slide({ direction: 'from-right' })} timing={linearTiming({ durationInFrames: overlap })} />, sequence] : [sequence];
+          })}
+        </TransitionSeries>
+      </div>
+    </div>
+    <div style={{ position: 'absolute', bottom: 86, left: 100, right: 100, display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ height: 4, flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 4 }}><div style={{ height: '100%', width: `${progress * 100}%`, background: manifest.visual.accentColor, borderRadius: 4 }} /></div>
+      <div style={{ fontSize: 22, fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.75)' }}>{String(active + 1).padStart(2, '0')} / {String(manifest.scenes.length).padStart(2, '0')}</div>
+    </div>
+  </div>;
+};
