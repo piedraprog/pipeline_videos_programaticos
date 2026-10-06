@@ -1,12 +1,12 @@
 # Web-to-video demo pipeline
 
-Create polished vertical product demos from real browser interactions. A JSON plan drives Playwright capture; Remotion turns the screenshots into a 1080×1920 MP4 with animated backgrounds, a phone frame, scene titles, progress, transitions, and a deterministic GSAP title timeline. Each project is stored in its own folder; there is no database. Audio and voice-over are out of scope.
+Create vertical product demos from real browser interactions. A JSON plan drives Playwright capture; Remotion composes the screenshots into a 1080×1920 MP4. Editorial mode supports independently scheduled background, graphics, logo, text and phone layers, with frame-driven depth entrances and accelerated screen transitions at 60 fps. Each project is stored in its own folder; there is no database. Audio and voice-over are out of scope.
 
 ## Requirements
 
 - Bun 1.3+ for scripts and rendering
 - Node.js 24+ for Playwright capture (important on Windows)
-- Network access to install Chromium and visit the target website
+- Network access to install dependencies/Chromium or visit a remote website. The FORM demo uses bundled assets and needs no network during capture/render.
 
 ## Fastest path: run the included demo
 
@@ -15,16 +15,28 @@ From the repository root:
 ```bash
 bun install
 bunx playwright install chromium
-bun run capture -- plans/ecommerce-purchase.json
-bun run render -- ecommerce-purchase
+bun run demo
 ```
 
-The render is `projects/ecommerce-purchase/output.mp4`. Capture must finish successfully first and produce a manifest. Rendering never performs browser interaction or creates missing screenshots.
+The render is `projects/studio-store/output.mp4`: 1080×1920, 60 fps, 720 frames (12 seconds). Five captured states show catalog → product → added to bag → cart → simulated confirmation. No payment is made. Stock decreases only on checkout; reload resets the in-memory store. Open `demos/studio-store/index.html` directly in a browser to try it manually; no server is required.
+
+Run the stages independently to inspect or correct a capture:
+
+```bash
+bun run capture -- plans/studio-store.json
+bun run render -- studio-store
+```
+
+Capture must finish successfully first and produce a manifest. Rendering never performs browser interaction or creates missing screenshots. The older remote example remains available as `plans/ecommerce-purchase.json` (30 fps, classic motion).
+
+### Visual direction
+
+FORM uses an editorial product-store aesthetic: forest green, warm paper, acid-lime accents and terracotta, local Manrope typography, and original SVG illustrations. The anchor is an oversized catalog headline with an offset lime seal, not a generic gradient landing page. Design feasibility/impact rubric: 13/15 (subjective design assessment, not a benchmark). Typography, 8-pixel spacing rhythm and geometric backplates connect the store and video.
 
 ## Make a simple demo manually
 
-1. Copy `plans/ecommerce-purchase.json` to `plans/my-demo.json`.
-2. Edit `projectName`, `baseUrl`, the visual options, and scenes. Use lowercase letters/numbers/hyphens for project and scene IDs. Give each scene a title/caption and enough duration to read the screen (typically 75–120 frames at 30 fps).
+1. Copy `plans/studio-store.json` to `plans/my-demo.json`.
+2. Edit `projectName`, `baseUrl`, the visual options, and scenes. Use lowercase letters/numbers/hyphens for project and scene IDs. Give each scene a title/caption and enough duration to read the screen (typically 120–180 frames at 60 fps). Set `fps: 60` and `visual.motionStyle: "editorial"` for the new layer; old plans default to classic motion.
 3. List the browser actions in the exact order they should happen. Each scene must include exactly one screenshot. For asynchronous pages, add a `waitFor` action for the real content before capture; navigation completion alone is not proof that data loaded.
 4. Capture and inspect the screenshots/manifest:
 
@@ -76,18 +88,61 @@ The render is `projects/ecommerce-purchase/output.mp4`. Capture must finish succ
 }
 ```
 
-`title`, `subtitle`, and `visual` are optional; defaults are supplied by the Zod schema. `backgroundStyle` is `aurora`, `midnight`, or `warm`; `accentColor` must be a six-digit hex color. Scene `title` and `caption` are optional. Durations are frames, not seconds: at 30 fps, 90 frames is 3 seconds. The composition is vertical 1080×1920 regardless of the capture viewport.
+`title`, `subtitle`, and `visual` are optional; defaults come from Zod. `backgroundStyle` is `aurora`, `midnight`, or `warm`; `accentColor` is a six-digit hex color. `motionStyle` is `classic` (default) or `editorial`. Scene `title` and `caption` are optional. Durations are frames: 90 frames at 30 fps = 180 frames at 60 fps = 3 seconds. Output remains vertical 1080×1920 regardless of capture viewport.
 
-Supported actions: `navigate` with `url`, `click` with `selector`, `scroll` with `selector`, `waitFor` with `selector` and optional `text`, and `screenshot` with an optional `selector` (omitted means viewport screenshot). Screenshots wait for visible images and fonts, disable CSS animation, and are contained rather than cropped inside the phone. Use a mobile viewport such as 390�844 for legibility; desktop captures will remain desktop layouts. A failed recapture removes the old manifest so stale scenes cannot accidentally render. Each scene must have exactly one screenshot action. `waitFor` accepts `selector` and optional `text` and fails after 10 seconds if content is not visible. A `click` may declare `dialog: { "message": "Product added" }`; capture waits for, validates, and accepts that dialog before continuing. The authoritative schemas and defaults are in `src/schema.ts`.
+`baseUrl` and `navigate.url` accept URLs or explicit `./` / `../` local paths, resolved **relative to the input plan**, not the working directory. The local example uses `../demos/studio-store/index.html`. Generated `projects/<name>/plan.json` contains resolved machine-specific file URLs; copy the original source plan instead.
+
+Supported actions: `navigate` with `url`, `click` with `selector`, `scroll` with `selector`, `waitFor` with `selector` and optional `text`, and `screenshot` with an optional `selector` (omitted means viewport screenshot). Screenshots wait for visible images and fonts, disable CSS animation, and are contained rather than cropped inside the phone. Use a mobile viewport such as 390×844 for legibility; desktop captures will remain desktop layouts. A failed recapture removes the old manifest so stale scenes cannot accidentally render. Each scene must have exactly one screenshot action. `waitFor` accepts `selector` and optional `text` and fails after 10 seconds if content is not visible. A `click` may declare `dialog: { "message": "Product added" }`; capture waits for, validates, and accepts that dialog before continuing. The authoritative schemas and defaults are in `src/schema.ts`.
 
 ## What the renderer does
 
-- Uses a restrained animated gradient background, with a stable palette and slow frame-derived glow movement; the captured website remains the focus.
-- Presents each screenshot in a phone mockup with a title, optional caption, and scene progress marker.
-- Keeps the background and phone frame stable; only screen contents slide with cubic ease-in/out (up to 18 overlapping frames), while headers switch without doubled text. Transition overlaps reduce total video duration by the overlap frames.
-- Uses Remotion's frame clock for background motion. `@remotion/gsap` owns a paused timeline and seeks it to each requested frame for title/rule entrances and continuous SVG rings, curved ribbons, and fixed-position particles. Decorative shapes stay behind the device and use finite, deterministic yoyo tweens without restarting between scenes. There is no free-running animation clock, CSS animation, timer, callbacks, or uncontrolled randomness.
+- **Legacy editorial (when `visual.layers` is absent):** word-stagger reveals (~0.34 s), coordinated caption/rule entrance, short header exit, and a 0.55 s device entrance with restrained settling. At each scene change the device and geometric backplate reposition in 0.4–0.45 s, then hold still for reading. No perpetual drift or particle loop.
+- **Editorial transitions:** alternating horizontal/vertical screen slides with acceleration/deceleration. Overlap is 0.35 s (21 frames at 60 fps), bounded by neighboring durations. FORM has 684 source frames minus four 21-frame overlaps = 600 screen frames; a 90-frame intro delay and a 30-frame ending hold make 720 composition frames.
+- **Classic:** preserves the original palette/gradient, stable phone, subtle shapes and cubic slide. Its 0.6 s overlap scales with FPS: 18 frames at 30 fps, 36 at 60 fps. Short scenes remain safely bounded.
+- Motion uses Remotion's frame clock or the official `@remotion/gsap` paused-timeline adapter. No free-running animation clock, CSS animation, timers, callbacks, or uncontrolled randomness. The bundled editorial font is awaited before rendering frames.
 
-To change visual styling, edit `templates/AgnosticReel.tsx`; validate any new plan input in `src/schema.ts` and pass it through capture to the manifest. Keep motion subordinate to the screenshot and use Remotion's `<Img>` / `staticFile()` for captured assets.
+**Capture is not video recording.** These are real browser interactions captured at discrete states, with motion-graphics transitions added afterwards. 60 fps means 60 animation samples per second, not continuous scroll/click footage or optical-flow interpolation of static PNGs. Continuous interface movement would require a separate video source; this implementation does not claim that capability.
+
+Edit `templates/LayeredReel.tsx` for configurable layers, `templates/EditorialReel.tsx` for legacy editorial styling, `templates/AgnosticReel.tsx` for classic, and `templates/timing.ts` for shared timing. Validate new inputs in `src/schema.ts` and propagate through capture. Keep UI legible and use `<Img>` / `staticFile()` for captured assets. Express motion in seconds × FPS, not fixed 30 fps frame counts.
+
+Bundled Manrope is distributed under SIL OFL; see `demos/studio-store/fonts/OFL.txt`. The store and SVG products are authored for this example. No code/assets from the unlicensed Remotion trailer were copied.
+
+## Independent layers and choreography
+
+The FORM example uses `visual.layers`; removing that field preserves the old editorial/classic output. Layers require `motionStyle: "editorial"`. They share one frame clock, but **screen changes never trigger the other layers**. The demo begins with FORM alone, reveals the phone from perceived depth at 0.8 s, starts screen playback at 1.5 s and reveals the first headline at 1.65 s. The phone then stays settled; the backplate has its own unrelated cue. This is 2.5D perspective/scale, not a Three.js scene.
+
+`durationSeconds` is the complete composition, including intro/outro. `screenStartSeconds` delays the screenshot timeline without shortening the first scene. The first screenshot is already inside the phone during its entrance; it does not reveal a blank screen. The final screenshot holds through the ending. Screenshot durations remain `durationFrames`, with 0.35 s overlaps.
+
+Each track has an `id`, `type`, absolute `start` and `duration` in **seconds**, and integer `zIndex`. Larger zIndex is in front; array order breaks ties. Each layer has its own stacking context; the subject groups the phone and its clipped screen. No parent transform couples text/background/subject.
+
+Supported types:
+- `background`: required hex `color`, optional `pattern: "none" | "grid"`. Static without keyframes; animate its transform/opacity explicitly if desired.
+- `graphic` / `foreground`: hex `color`, `shape: "disc" | "ring" | "slash"`. Type communicates intent; zIndex determines actual order.
+- `subject`: exactly one phone/screen group; it must cover the delayed screen timeline.
+- `text` / `logo`: text content, hex `color`, optional `fontSize` and `align`. Logo currently means a typographic mark, not an imported image.
+
+All tracks accept `x`, `y` (top-left output pixels), `width`, `height`, `z` (perspective depth), `scale`, `opacity`, `rotation`, `rotateX` and `keyframes`. Defaults: position/depth/rotations 0, scale/opacity 1; subject size 610×1300, background 1080×1920, copy width 896. Set subject position explicitly (FORM uses x235/y450). Keyframe `time` is **relative to that layer's start**, in seconds. Omitted pose properties carry forward from the preceding keyframe/base pose. Destination `ease` is `linear`, `smooth`, `snappy` or `settle`; settle adds a small overshoot to spatial values, while opacity is clamped. Holds need no per-frame keys.
+
+Example subject track (inside `visual.layers.tracks`):
+
+```json
+{
+  "id": "phone", "type": "subject", "start": 0.8, "duration": 11.2,
+  "x": 235, "y": 450, "width": 610, "height": 1300, "zIndex": 10,
+  "keyframes": [
+    { "time": 0, "z": -950, "scale": 0.64, "opacity": 0, "rotateX": 18 },
+    { "time": 0.65, "z": 0, "scale": 1, "opacity": 1, "rotateX": 0, "ease": "settle" }
+  ]
+}
+```
+
+Copy `plans/studio-store.json` for a complete working layer arrangement. Schedule logo, subject, headline and caption separately; do not assign all of them the same start simply because a screenshot changes. Every track and keyframe must fit inside the composition. Zod rejects duplicate IDs, unknown fields/types, invalid ranges, unsorted keys, a cropped screen timeline and layers combined with classic mode. No arbitrary JavaScript, CSS animation or GSAP expression is accepted from JSON.
+
+### Iterate without recapturing
+
+For **visual-only** experiments, edit `visual.layers` in `projects/studio-store/manifest.json` and run `bun run render -- studio-store`. Keep projectName, fps, scene IDs/durations and asset paths intact. Persist the same visual configuration back into the source `plans/studio-store.json` when accepted: the next capture regenerates the manifest and overwrites manual manifest edits. If the website, actions, screenshot content, scene durations or FPS change, recapture from the source plan.
+
+Agent direction example: “Keep screenshots and purchase flow intact. Give the logo a 0.7 s solo hold, reveal the subject from depth, show the first headline after the subject settles, and keep background cues independent of screen transitions. Set a reading hold after every entrance. Validate the layer clock, render, and inspect opening/settled/transition/end frames.”
 
 ## Agent checklist
 
@@ -109,4 +164,4 @@ bun test
 bunx tsc --noEmit
 ```
 
-Tests cover scene timing, mobile defaults, exactly one screenshot per scene, missing loaded content, and missing/unexpected add-to-cart confirmations. Browser contract tests use a local fixture server and require the installed Chromium.
+Tests cover FPS-normalized timing, editorial settings, local paths, mobile defaults, screenshot counts, readiness/confirmation failures, and a real demo purchase/stock update. Browser tests use Node/Playwright and require installed Chromium. Tests do not replace PNG inspection and MP4 playback.

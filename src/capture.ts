@@ -1,7 +1,7 @@
 import { chromium, type Page } from 'playwright';
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { VideoPlanSchema, type VideoManifest } from './schema.ts';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,6 +33,12 @@ async function main() {
   const parsed = VideoPlanSchema.safeParse(raw);
   if (!parsed.success) throw new Error(`Invalid capture plan:\n${parsed.error.issues.map((issue) => `- ${issue.path.join('.') || '(root)'}: ${issue.message}`).join('\n')}`);
   const plan = parsed.data;
+  const resolvePage = (location: string) => /^\.{1,2}\//.test(location)
+    ? pathToFileURL(path.resolve(path.dirname(planPath), location)).href : location;
+  plan.baseUrl = resolvePage(plan.baseUrl);
+  for (const scene of plan.scenes) for (const action of scene.actions) {
+    if (action.type === 'navigate') action.url = resolvePage(action.url);
+  }
   const projectDir = path.join(rootDir, 'projects', plan.projectName);
   const assetsDir = path.join(projectDir, 'assets');
   await mkdir(assetsDir, { recursive: true });

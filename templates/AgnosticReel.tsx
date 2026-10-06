@@ -1,12 +1,15 @@
 import React from 'react';
 import { useGsapTimeline } from '@remotion/gsap';
-import { Easing, Img, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { TransitionSeries, linearTiming } from '@remotion/transitions';
+import { Img, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { TransitionSeries } from '@remotion/transitions';
 import { slide } from '@remotion/transitions/slide';
 import type { VideoManifest } from '../src/schema';
+import { EditorialReel } from './EditorialReel';
+import { LayeredReel } from './LayeredReel';
+import {getTransitionFrames, getTransitionTiming, getSceneStarts, getReelDuration} from './timing';
+export {getTransitionFrames, getTransitionTiming, getSceneStarts, getReelDuration} from './timing';
 
 export type AgnosticReelProps = { manifest: VideoManifest };
-const TRANSITION_FRAMES = 18;
 const colors = {
   aurora: { base: '#071014', glow: '#174a4b', secondary: '#102e43' },
   midnight: { base: '#090b16', glow: '#243467', secondary: '#311d48' },
@@ -95,23 +98,7 @@ const SceneHeader: React.FC<{ scene: VideoManifest['scenes'][number]; manifest: 
   </div>;
 };
 
-export const getTransitionFrames = (previous: number, next: number) => Math.min(TRANSITION_FRAMES, Math.floor((previous - 1) / 2), Math.floor((next - 1) / 2));
-export const getTransitionTiming = (previous: number, next: number) => linearTiming({
-  durationInFrames: getTransitionFrames(previous, next),
-  easing: Easing.inOut(Easing.cubic),
-});
-export const getSceneStarts = (manifest: VideoManifest) => {
-  let start = 0;
-  return manifest.scenes.map((scene, index) => {
-    if (index > 0) start -= getTransitionFrames(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames);
-    const result = start;
-    start += scene.durationFrames;
-    return result;
-  });
-};
-export const getReelDuration = (manifest: VideoManifest) => getSceneStarts(manifest).at(-1)! + manifest.scenes.at(-1)!.durationFrames;
-
-export const AgnosticReel: React.FC<AgnosticReelProps> = ({ manifest }) => {
+const ClassicReel: React.FC<AgnosticReelProps> = ({ manifest }) => {
   const frame = useCurrentFrame();
   const starts = getSceneStarts(manifest);
   const active = starts.reduce((result, start, index) => frame >= start ? index : result, 0);
@@ -129,8 +116,8 @@ export const AgnosticReel: React.FC<AgnosticReelProps> = ({ manifest }) => {
               <Img src={staticFile(scene.asset)} alt={scene.title ?? scene.id} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center top', background: '#fff' }} />
             </TransitionSeries.Sequence>;
             if (index === 0) return [sequence];
-            const overlap = getTransitionFrames(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames);
-            return overlap > 0 ? [<TransitionSeries.Transition key={`transition-${scene.id}`} presentation={slide({ direction: 'from-right' })} timing={getTransitionTiming(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames)} />, sequence] : [sequence];
+            const overlap = getTransitionFrames(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames, manifest.fps);
+            return overlap > 0 ? [<TransitionSeries.Transition key={`transition-${scene.id}`} presentation={slide({ direction: 'from-right' })} timing={getTransitionTiming(manifest.scenes[index - 1]!.durationFrames, scene.durationFrames, manifest.fps)} />, sequence] : [sequence];
           })}
         </TransitionSeries>
       </div>
@@ -141,3 +128,5 @@ export const AgnosticReel: React.FC<AgnosticReelProps> = ({ manifest }) => {
     </div>
   </div>;
 };
+
+export const AgnosticReel: React.FC<AgnosticReelProps> = (props) => props.manifest.visual.layers ? <LayeredReel {...props} /> : props.manifest.visual.motionStyle === 'editorial' ? <EditorialReel {...props} /> : <ClassicReel {...props} />;
