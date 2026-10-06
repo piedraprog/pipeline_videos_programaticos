@@ -1,5 +1,5 @@
 import { chromium, type Page } from 'playwright';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VideoPlanSchema, type VideoManifest } from './schema.ts';
@@ -36,6 +36,8 @@ async function main() {
   const projectDir = path.join(rootDir, 'projects', plan.projectName);
   const assetsDir = path.join(projectDir, 'assets');
   await mkdir(assetsDir, { recursive: true });
+  // A failed recapture must never leave a stale manifest eligible for rendering.
+  await rm(path.join(projectDir, 'manifest.json'), { force: true });
   await writeFile(path.join(projectDir, 'plan.json'), `${JSON.stringify(plan, null, 2)}\n`);
 
   let browser;
@@ -74,20 +76,50 @@ async function main() {
             case 'navigate':
               await page.goto(action.url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
               break;
-            case 'click':
-              await (await ensureSelector(page, action.selector, scene.id)).click({ timeout: 10_000 });
+            case 'click': {
+              const element = await ensureSelector(page, action.selector, scene.id);
+              if (action.dialog) {
+                const dialogPromise = page.waitForEvent('dialog', { timeout: 10_000 }).then(async (dialog) => {
+                  const message = dialog.message();
+                  await dialog.accept();
+                  if (!message.includes(action.dialog!.message)) throw new Error(`Expected dialog containing "${action.dialog!.message}", received "${message}".`);
+                });
+                await Promise.all([dialogPromise, element.click({ timeout: 10_000 })]);
+              } else {
+                await element.click({ timeout: 10_000 });
+              }
               break;
+            }
+            case 'waitFor': {
+              const element = action.text ? page.locator(action.selector).filter({ hasText: action.text }).first() : page.locator(action.selector).first();
+              await element.waitFor({ state: 'visible', timeout: 10_000 });
+              break;
+            }
             case 'scroll':
-              await (await ensureSelector(page, action.selector, scene.id)).scrollIntoViewIfNeeded({ timeout: 10_000 });
+              await (await ensureSelector(page, action.selector, scene.id)).evaluate((element) => element.scrollIntoView({ block: 'start', behavior: 'instant' }));
               break;
             case 'screenshot': {
+              await page.waitForFunction(() => document.fonts.status === 'loaded' && Array.from(document.images).every((image) => {
+                const rect = image.getBoundingClientRect();
+                const visible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+                return !visible || image.complete;
+              }), undefined, { timeout: 10_000 });
+              await page.evaluate(async () => {
+                await Promise.all(Array.from(document.images).filter((image) => {
+                  const rect = image.getBoundingClientRect();
+                  return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+                }).map(async (image) => {
+                  await image.decode();
+                  if (image.naturalWidth === 0) throw new Error(`Visible image failed to load: ${image.currentSrc}`);
+                }));
+              });
               const filename = `${scene.id}.png`;
               const destination = path.join(assetsDir, filename);
               if (action.selector) {
                 const element = await ensureSelector(page, action.selector, scene.id);
-                await element.screenshot({ path: destination, type: 'png', scale: 'device' });
+                await element.screenshot({ path: destination, type: 'png', scale: 'device', animations: 'disabled' });
               } else {
-                await page.screenshot({ path: destination, type: 'png', scale: 'device', fullPage: false });
+                await page.screenshot({ path: destination, type: 'png', scale: 'device', fullPage: false, animations: 'disabled' });
               }
               manifest.scenes.push({
                 id: scene.id,

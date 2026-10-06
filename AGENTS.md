@@ -36,3 +36,10 @@ bun run render -- ecommerce-purchase
 ```
 
 Capture requires Node.js 24+ and uses Node under Bun to avoid the observed Chromium launch timeout on Windows. See `README.md` for manual authoring, plan schema overview, output checks, animation customization, and troubleshooting.
+
+## Capture readiness and visual QA
+
+- Every scene has exactly one screenshot. Use explicit `waitFor` selectors/text for loaded application data, not arbitrary sleep delays.
+- For actions producing a confirmation dialog, declare `click.dialog.message`; do not navigate before the confirmation completes.
+- Inspect actual captured product/catalog/cart content, not just file existence. A successful render can still faithfully render an empty page.
+- Prefer 390×844 mobile captures for the phone frame. Inspect first frame, settled scenes, transition midpoints, and final frame; never claim visual quality from typecheck alone.
