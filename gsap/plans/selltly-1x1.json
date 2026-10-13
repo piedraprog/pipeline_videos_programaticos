@@ -1,0 +1,84 @@
+{
+  "brand": "brands/selltly/brand.json",
+  "output": "out/selltly-1x1",
+  "format": "1x1",
+  "style": "light-corporate",
+  "fps": 60,
+  "outFps": 30,
+  "bpm": 116,
+  "seed": 20261013,
+  "scenes": [
+    {
+      "type": "hook",
+      "beats": 6,
+      "copy": "Tu catálogo y tus pedidos, *en un solo lugar*."
+    },
+    {
+      "type": "device",
+      "beats": 8,
+      "device": "browser",
+      "image": "assets/shots/d-home-full.jpg",
+      "srcWidth": 1440,
+      "url": "demo-bisuteria.selltly.com",
+      "scrollTo": 420,
+      "tap": {
+        "x": 1103,
+        "y": 942
+      },
+      "zoom": 1.5,
+      "kicker": "Catálogo digital",
+      "title": "Un enlace claro, *no un PDF*."
+    },
+    {
+      "type": "device",
+      "beats": 8,
+      "device": "browser",
+      "image": "assets/shots/d-product.jpg",
+      "after": "assets/shots/d-product-added.jpg",
+      "srcWidth": 1440,
+      "url": "demo-bisuteria.selltly.com/producto/anillo-piedra-rosa",
+      "tap": {
+        "x": 1115,
+        "y": 383
+      },
+      "zoom": 1.8,
+      "kicker": "Pedido claro",
+      "title": "Tu cliente arma el *pedido*."
+    },
+    {
+      "type": "device",
+      "beats": 7,
+      "device": "browser",
+      "image": "assets/shots/d-cart.jpg",
+      "srcWidth": 1440,
+      "url": "demo-bisuteria.selltly.com/carrito",
+      "tap": {
+        "x": 1098,
+        "y": 547
+      },
+      "hoverOnly": true,
+      "zoom": 1.4,
+      "kicker": "Directo a WhatsApp",
+      "title": "Llega *ordenado* a tu WhatsApp."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Sin *PDFs* sueltos."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Sin comisión *por venta*."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Tu cliente te *paga directo*."
+    },
+    {
+      "type": "outro",
+      "beats": 7
+    }
+  ]
+}

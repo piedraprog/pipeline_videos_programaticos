@@ -1,0 +1,61 @@
+{
+  "name": "light-corporate",
+  "description": "Clean off-white, faint brand-color gradients, dark text, original black logo, calm crisp easing, minimal grain. Corporate/upbeat-clean music.",
+  "theme": "light",
+  "roles": {},
+  "background": {
+    "type": "glow",
+    "particles": 24,
+    "grain": 0.025,
+    "vignette": false
+  },
+  "fonts": {
+    "display": {
+      "family": "Inter",
+      "src": "engines/gsap/fonts/Inter.ttf",
+      "weight": 900,
+      "tracking": -0.045,
+      "transform": "none",
+      "lineHeight": 1.1
+    },
+    "keyword": {
+      "family": "ISerif",
+      "src": "engines/gsap/fonts/ISerif.ttf",
+      "style": "italic",
+      "weight": 400
+    },
+    "label": {
+      "family": "Inter",
+      "src": "engines/gsap/fonts/Inter.ttf",
+      "weight": 700
+    }
+  },
+  "text": {
+    "enter": "rise-blur",
+    "align": "center",
+    "sticker": false,
+    "keyword": "gradient"
+  },
+  "motion": {
+    "enter": "power3.out",
+    "overshoot": "back.out(1.15)",
+    "camera": "expo.inOut",
+    "blur": 4,
+    "tilt": 0.25
+  },
+  "transition": {
+    "type": "overlap",
+    "overlap": 0.35
+  },
+  "device": {
+    "shadow": "soft"
+  },
+  "post": {
+    "glowPass": false,
+    "noise": 2
+  },
+  "audio": {
+    "music": "corporate",
+    "bpm": 116
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "brand": "brands/selltly/brand.json",
+  "output": "out/selltly-9x16-playful",
+  "format": "9x16",
+  "style": "playful-sticker",
+  "fps": 60,
+  "outFps": 30,
+  "bpm": 118,
+  "seed": 20261013,
+  "scenes": [
+    {
+      "type": "hook",
+      "beats": 6,
+      "copy": "Tu catálogo y tus pedidos, *en un solo lugar*."
+    },
+    {
+      "type": "device",
+      "beats": 8,
+      "device": "phone",
+      "image": "assets/shots/m-home-full.jpg",
+      "srcWidth": 390,
+      "url": "demo-bisuteria.selltly.com",
+      "scrollTo": 980,
+      "tap": {
+        "x": 195,
+        "y": 1130
+      },
+      "zoom": 1.5,
+      "kicker": "Catálogo digital",
+      "title": "Un enlace claro, *no un PDF*."
+    },
+    {
+      "type": "device",
+      "beats": 8,
+      "device": "phone",
+      "image": "assets/shots/m-product.jpg",
+      "after": "assets/shots/m-product-added.jpg",
+      "srcWidth": 390,
+      "url": "demo-bisuteria.selltly.com/producto",
+      "tap": {
+        "x": 259,
+        "y": 756
+      },
+      "zoom": 1.7,
+      "kicker": "Pedido claro",
+      "title": "Tu cliente arma el *pedido*."
+    },
+    {
+      "type": "device",
+      "beats": 7,
+      "device": "phone",
+      "image": "assets/shots/m-cart.jpg",
+      "srcWidth": 390,
+      "url": "demo-bisuteria.selltly.com/carrito",
+      "tap": {
+        "x": 300,
+        "y": 760
+      },
+      "hoverOnly": true,
+      "zoom": 1.45,
+      "kicker": "Directo a WhatsApp",
+      "title": "Llega *ordenado* a tu WhatsApp."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Sin *PDFs* sueltos."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Sin comisión *por venta*."
+    },
+    {
+      "type": "phrase",
+      "beats": 2,
+      "copy": "Tu cliente te *paga directo*."
+    },
+    {
+      "type": "outro",
+      "beats": 7
+    }
+  ]
+}

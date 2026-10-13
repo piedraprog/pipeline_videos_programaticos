@@ -1,0 +1,136 @@
+{
+  "name": "Selltly",
+  "logo": {
+    "full": {
+      "onLight": "brands/selltly/logo.png",
+      "onDark": "brands/selltly/logo-on-dark.png",
+      "aspect": 3.322
+    },
+    "icon": {
+      "onLight": "brands/selltly/icon.png",
+      "onDark": "brands/selltly/icon-on-dark.png"
+    }
+  },
+  "palette": {
+    "wine": "#901440",
+    "crimson": "#c6143a",
+    "orange": "#e84d20",
+    "yellow": "#f4dc2a"
+  },
+  "roles": {
+    "background": "#0b0708",
+    "text": "#fbf6f2",
+    "textMuted": "#d9c9c4",
+    "glows": [
+      "#901440",
+      "#c6143a",
+      "#e84d20"
+    ],
+    "accent": "#f4dc2a",
+    "keywordGradient": [
+      "#e84d20",
+      "#f4dc2a"
+    ],
+    "ctaGradient": [
+      "#c6143a",
+      "#e84d20"
+    ],
+    "particles": "#f4dc2a",
+    "tapRing": "#f4dc2a"
+  },
+  "fonts": {
+    "display": {
+      "family": "Inter",
+      "src": "template/fonts/Inter.ttf",
+      "weight": 900,
+      "tracking": -0.045
+    },
+    "keyword": {
+      "family": "ISerif",
+      "src": "template/fonts/ISerif.ttf",
+      "style": "italic"
+    },
+    "ui": {
+      "family": "Inter",
+      "weight": 600
+    }
+  },
+  "domain": "selltly.com",
+  "tagline": "Vende con *más orden*.",
+  "cta": "Solicitar acceso Founder",
+  "tone": {
+    "language": "es-419",
+    "voice": "tú (español neutro latinoamericano, sin voseo)",
+    "style": "directo, cálido, frases cortas"
+  },
+  "cornerMark": true,
+  "theme": "dark",
+  "themes": {
+    "dark": {},
+    "light": {
+      "background": "#faf8f5",
+      "text": "#16110f",
+      "textMuted": "#5b4f4c",
+      "glows": [
+        "#f4dc2a",
+        "#e84d20",
+        "#c6143a"
+      ],
+      "accent": "#c6143a",
+      "keywordGradient": [
+        "#c6143a",
+        "#e84d20"
+      ],
+      "ctaGradient": [
+        "#c6143a",
+        "#e84d20"
+      ],
+      "particles": "#e84d20",
+      "tapRing": "#c6143a"
+    }
+  },
+  "messaging": {
+    "source": "brands/selltly/messaging.md",
+    "ctas": [
+      "Solicitar acceso Founder",
+      "Solicitar acceso"
+    ],
+    "taglines": [
+      "Vende con *más orden*.",
+      "Tu catálogo, tus pedidos y tus clientes, *en un solo lugar*.",
+      "Cambia el PDF por una tienda que puedas *compartir*.",
+      "Publica tu tienda *sin pelear* con una plataforma."
+    ],
+    "claims": [
+      "Sin comisión por venta.",
+      "Pedidos ordenados por WhatsApp.",
+      "Un enlace claro en vez de PDFs.",
+      "Tu cliente te paga directo.",
+      "Métricas simples: visitas, clics y pedidos.",
+      "Subdominio tunegocio.selltly.com."
+    ],
+    "offer": "Plan Founder desde USD 30/mes · cupo limitado · sin comisión por venta",
+    "forbidden": [
+      "gratis",
+      "gratuito",
+      "free",
+      "prueba gratis",
+      "Crea tu tienda",
+      "Crear mi tienda",
+      "pasarela de pago",
+      "pago integrado",
+      "dominio propio",
+      "plataforma autónoma",
+      "automatización total",
+      "comisiones ocultas",
+      "lista hoy",
+      "inteligencia artificial"
+    ],
+    "audience": "Negocios locales que ya venden por WhatsApp/Instagram con PDFs y listas (Venezuela)."
+  },
+  "isotype": "brands/selltly/isotype.json",
+  "bumper": {
+    "introDuration": 3.5,
+    "outroDuration": null
+  }
+}

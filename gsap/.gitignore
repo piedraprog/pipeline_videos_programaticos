@@ -1,0 +1,6 @@
+out/
+bumpers/
+references/*/
+*.mp4
+*.wav
+frames*/

@@ -127,6 +127,17 @@ async function main() {
               } else {
                 await page.screenshot({ path: destination, type: 'png', scale: 'device', fullPage: false, animations: 'disabled' });
               }
+              if (action.boxes) {
+                // Element boxes (CSS px, relative to the screenshot) for the GSAP engine: zooms, highlights, tap targets.
+                const boxes: Record<string, { x: number; y: number; width: number; height: number }> = {};
+                const origin = action.selector ? await (await ensureSelector(page, action.selector, scene.id)).boundingBox() : { x: 0, y: 0 };
+                for (const [name, selector] of Object.entries(action.boxes)) {
+                  const box = await (await ensureSelector(page, selector, scene.id)).boundingBox();
+                  if (!box) throw new Error(`Scene "${scene.id}" box "${name}" (${selector}) has no layout box.`);
+                  boxes[name] = { x: box.x - (origin?.x ?? 0), y: box.y - (origin?.y ?? 0), width: box.width, height: box.height };
+                }
+                await writeFile(path.join(assetsDir, `${scene.id}.boxes.json`), JSON.stringify(boxes, null, 2));
+              }
               manifest.scenes.push({
                 id: scene.id,
                 ...(scene.title ? { title: scene.title } : {}),

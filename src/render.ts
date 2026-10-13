@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 import { access, readFile } from 'node:fs/promises';
@@ -8,6 +9,15 @@ import { ManifestSchema } from './schema';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function main() {
+  // Unified entry: `render -- <project>` = Remotion engine (manifest from capture);
+  // `render -- plans/<plan>.json [--qa-only|--motion-check]` dispatches on plan.engine ("gsap" | "remotion").
+  const arg = process.argv[2];
+  if (arg?.endsWith('.json')) {
+    const plan = JSON.parse(await readFile(path.resolve(rootDir, arg), 'utf8')) as { engine?: string; projectName?: string };
+    if (plan.engine === 'gsap') return runNode(['engines/gsap/tools/render.mjs', arg, ...process.argv.slice(3)]);
+    if (!plan.projectName) throw new Error(`${arg}: plan has neither engine "gsap" nor a projectName.`);
+    process.argv[2] = plan.projectName;
+  }
   const projectName = process.argv[2];
   if (!projectName || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(projectName)) {
     throw new Error('Usage: bun run render -- <project-name> (lowercase letters, numbers, and hyphens)');
@@ -50,6 +60,12 @@ async function main() {
     pixelFormat: 'yuv420p',
   });
   console.log(`Render complete: ${outputLocation}`);
+}
+
+function runNode(args: string[]) {
+  // GSAP engine runs under Node (Playwright launch is unreliable under Bun on Windows, see capture).
+  const r = spawnSync('node', args, { cwd: rootDir, stdio: 'inherit' });
+  if (r.status !== 0) throw new Error(`gsap engine exited with ${r.status ?? r.error}`);
 }
 
 main().catch((error: unknown) => {

@@ -1,0 +1,110 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Brand bumper</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{overflow:hidden}#stage{position:relative;overflow:hidden}
+.abs{position:absolute}.cta{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:999px;color:#fff;white-space:nowrap;font-weight:800}</style></head>
+<body><div id="stage"></div><script src="lib/gsap.min.js"></script><script>
+// Brand intro/outro bumpers built from the vectorized isotype (brands/<b>/isotype.json).
+// URL: bumper.html?brand=brands/selltly/brand.json&kind=intro|outro&variant=A|B|C|D&format=9x16|16x9|1x1&bg=dark|light
+const q=new URLSearchParams(location.search);const FORMATS={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]};
+const SAFE={'16x9':{x:.06,t:.08,b:.08},'9x16':{x:.08,t:.09,b:.12},'1x1':{x:.07,t:.07,b:.07}};
+const $=(t,p,st,ns)=>{const e=ns?document.createElementNS('http://www.w3.org/2000/svg',t):document.createElement(t);if(st)for(const[k,v]of Object.entries(st)){if(ns)e.setAttribute(k,v);else e.style[k]=v}if(p)p.appendChild(e);return e};
+async function main(){
+const root='../';const brand=await (await fetch(root+q.get('brand'))).json();const iso=await (await fetch(root+brand.isotype)).json();
+const kind=q.get('kind')||'intro',V=q.get('variant')||'A',fmt=q.get('format')||'9x16',DARK=(q.get('bg')||'dark')==='dark';
+const [W,H]=FORMATS[fmt],S=SAFE[fmt],u=Math.min(W,H)/1080,portrait=H>W;const safe={l:W*S.x,r:W-W*S.x,t:H*S.t,b:H-H*S.b};safe.w=safe.r-safe.l;
+const P=brand.palette,FG=DARK?'#ffffff':'#16110f',BGC=DARK?'#0b0708':'#faf8f5';
+document.head.appendChild(Object.assign(document.createElement('style'),{textContent:`@font-face{font-family:Inter;src:url(${root}template/fonts/Inter.ttf);font-weight:100 900}`}));
+await document.fonts.load('800 40px Inter');
+const st=document.getElementById('stage');Object.assign(st.style,{width:W+'px',height:H+'px',background:BGC,fontFamily:'Inter'});document.body.style.width=W+'px';
+// soft brand background
+const glow=$('div',st,{position:'absolute',left:W/2-W*.6+'px',top:H/2-W*.6+'px',width:W*1.2+'px',height:W*1.2+'px',borderRadius:'50%',background:`radial-gradient(circle,${DARK?P.wine:P.yellow} 0%,transparent 62%)`,opacity:DARK?.35:.25,filter:`blur(${60*u}px)`});
+// lockup geometry: icon h, wordmark height .39h, gap .12h
+const [,,vw,vh]=iso.viewBox,[,,ww,wh]=iso.wordmark.viewBox;
+const ratio=iso.wordmark.heightRatioToIcon, wmH=r=>r*ratio, wmW=r=>wmH(r)*ww/wh;
+const total=h=>h*vw/vh+.14*h+wmW(h);
+let h=Math.min(safe.w*.9/(total(1)),(portrait?300:260)*u);
+const outroLift=kind==='outro'?(portrait?170:120)*u:0;
+const tw=total(h),lx=W/2-tw/2,cy=H/2-outroLift;const iw=h*vw/vh;
+const big=Math.min(safe.w*.55,(portrait?520:520)*u);
+// icon
+const icon=$('div',st,{position:'absolute',left:lx+'px',top:cy-h/2+'px',width:iw+'px',height:h+'px',transformOrigin:'50% 50%'});
+const svg=$('svg',icon,{viewBox:`0 0 ${vw} ${vh}`,width:'100%',height:'100%',overflow:'visible'},1);
+const defs=$('defs',svg,{},1);const goo=$('filter',defs,{id:'goo',x:'-50%',y:'-50%',width:'200%',height:'200%'},1);
+const gblur=$('feGaussianBlur',goo,{in:'SourceGraphic',stdDeviation:0,result:'b'},1);$('feColorMatrix',goo,{in:'b',mode:'matrix',values:'1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9'},1);
+const xg=$('g',svg,{},1);const xp=$('path',xg,{d:iso.x,fill:FG},1);
+const dg=$('g',svg,{},1);const dots=iso.dots.map(d=>$('circle',dg,{cx:d.cx,cy:d.cy,r:d.r,fill:d.color},1));
+const C={x:vw/2,y:vh/2};
+// wordmark
+const wmWrap=$('div',st,{position:'absolute',left:lx+iw+.14*h+'px',top:cy-wmH(h)/2+'px',width:wmW(h)+'px',height:wmH(h)+'px'});
+const wsvg=$('svg',wmWrap,{viewBox:`0 0 ${ww} ${wh}`,width:'100%',height:'100%'},1);$('path',wsvg,{d:iso.wordmark.path,fill:FG},1);
+// CTA (outro)
+const textEls=[];let cta,offer;
+if(kind==='outro'){
+  cta=$('div',st,{background:`linear-gradient(90deg,${P.crimson},${P.orange})`,height:100*u+'px',padding:`0 ${60*u}px`,fontSize:40*u+'px',boxShadow:`0 ${18*u}px ${50*u}px ${P.crimson}55`});
+  cta.textContent=brand.cta;cta.className='cta';let fs=40*u;while(cta.offsetWidth>safe.w*.95&&fs>14)cta.style.fontSize=(fs*=.95)+'px';
+  cta.style.left=W/2-cta.offsetWidth/2+'px';cta.style.top=cy+h/2+(portrait?110:70)*u+'px';textEls.push(cta);
+  offer=$('div',st,{position:'absolute',left:safe.l+'px',width:safe.w+'px',textAlign:'center',color:FG,opacity:.7,fontSize:26*u+'px',fontWeight:500,top:cta.offsetTop+cta.offsetHeight+30*u+'px'});
+  offer.textContent=(brand.messaging||{}).offer||'';let ofs=26*u;while(offer.scrollWidth>offer.clientWidth&&ofs>12)offer.style.fontSize=(ofs*=.95)+'px';textEls.push(offer);
+}
+const tl=gsap.timeline({paused:true});const sfx=[];const fx=(t,type,g=1)=>sfx.push({t:+t.toFixed(3),type,gain:g});
+// start state: icon big and centered
+const bigS=big/h, cx0=W/2-(lx+iw/2), cy0=(kind==='outro'?outroLift:0);
+tl.set(icon,{x:cx0,y:cy0,scale:bigS},0);tl.set(wmWrap,{clipPath:'inset(-10% 100% -10% 0)'},0);
+const dOff=dots.map(d=>({dx:+d.getAttribute('cx')-C.x,dy:+d.getAttribute('cy')-C.y}));
+let bEnd=1.3;
+if(V==='A'){ // fly in & assemble
+  const from=[[-1,1],[-1,-1],[1,-1],[1,1]];
+  dots.forEach((d,i)=>{tl.fromTo(d,{x:from[i][0]*vw*2.2,y:from[i][1]*vh*2.6,scale:.6,transformOrigin:'50% 50%'},{x:0,y:0,scale:1,duration:.62,ease:'expo.out'},.12+i*.08);fx(.1+i*.08,'whoosh',.5)});
+  tl.fromTo(xg,{scale:0,rotation:-60,transformOrigin:'50% 50%'},{scale:1,rotation:0,duration:.55,ease:'back.out(2.2)'},.5);fx(.55,'impact',.9);
+  tl.to(icon,{scale:bigS*1.07,duration:.12,ease:'power2.out'},.78).to(icon,{scale:bigS,duration:.4,ease:'elastic.out(1,.5)'},.9);fx(.8,'pop',.6);
+  bEnd=1.25;
+} else if(V==='B'){ // X draws itself, then dots pop
+  const len=xp.getTotalLength();
+  tl.fromTo(xp,{attr:{'stroke-dasharray':len,'stroke-dashoffset':len},fill:'transparent'},{attr:{'stroke-dashoffset':0},duration:.95,ease:'power2.inOut'},.08);
+  tl.set(xp,{attr:{stroke:FG,'stroke-width':10}},0);tl.to(xp,{fill:FG,duration:.25,ease:'power2.out'},.9);tl.to(xp,{attr:{'stroke-width':0},duration:.25},.95);fx(.08,'draw',.6);
+  dots.forEach((d,i)=>{tl.fromTo(d,{scale:0,transformOrigin:'50% 50%'},{scale:1,duration:.55,ease:'elastic.out(1.1,.45)'},.95+i*.09);fx(.95+i*.09,'pop',.55)});
+  bEnd=1.55;
+} else if(V==='C'){ // dots orbit and snap into place
+  dots.forEach(d=>gsap.set(d,{transformOrigin:'50% 50%'}));
+  const e1=gsap.parseEase('power2.out'),e2=gsap.parseEase('back.out(3)'),cl=v=>Math.max(0,Math.min(1,v));
+  window.orbitAt=t=>{if(t>1.4)return;const p=e1(cl(t/1.0));const a=-720*(1-p);const r=t<1?2.1-.5*p:1.6-.6*e2(cl((t-1)/.32));
+    dots.forEach((d,i)=>{const o=dOff[i],ang=Math.atan2(o.dy,o.dx)+a*Math.PI/180,rad=Math.hypot(o.dx,o.dy)*r;gsap.set(d,{x:Math.cos(ang)*rad-o.dx,y:Math.sin(ang)*rad-o.dy})})};
+  fx(.05,'swirl',.6);fx(1.02,'snap',.8);
+  tl.fromTo(xg,{scale:0,rotation:180,transformOrigin:'50% 50%'},{scale:1,rotation:0,duration:.7,ease:'back.out(1.6)'},.55);fx(1.05,'impact',.6);
+  bEnd=1.45;
+} else { // D: liquid / elastic merge from one blob
+  dg.setAttribute('filter','url(#goo)');gsap.set(gblur,{attr:{stdDeviation:28}});
+  dots.forEach((d,i)=>tl.fromTo(d,{x:C.x-+d.getAttribute('cx'),y:C.y-+d.getAttribute('cy'),scale:1.5,transformOrigin:'50% 50%'},{x:0,y:0,scale:1,duration:1.05,ease:'elastic.out(1,.42)'},.25+i*.03));
+  tl.fromTo(dg,{scale:.2,transformOrigin:'50% 50%'},{scale:1,duration:.35,ease:'back.out(2)'},0);fx(0,'blob',.7);
+  tl.to(gblur,{attr:{stdDeviation:0},duration:.9,ease:'power2.in'},.45);
+  tl.fromTo(xg,{scale:.2,opacity:0,transformOrigin:'50% 50%'},{scale:1,opacity:1,duration:.6,ease:'back.out(1.8)'},.6);fx(.3,'stretch',.6);fx(.65,'pop',.5);
+  bEnd=1.4;
+}
+// lockup: icon settles into place, wordmark wipes in
+tl.to(icon,{x:0,y:0,scale:1,duration:.62,ease:'expo.inOut'},bEnd);fx(bEnd,'whoosh',.35);
+tl.to(wmWrap,{clipPath:'inset(-10% -2% -10% 0)',duration:.55,ease:'power3.out'},bEnd+.3);fx(bEnd+.42,'chime',.55);
+let D;
+if(kind==='intro'){
+  const ex=bEnd+1.25;D=ex+.5;
+  if(V==='A'){tl.to([icon,wmWrap],{scale:9,opacity:0,duration:.45,ease:'power3.in',transformOrigin:`${iw/2}px ${h/2}px`},ex);fx(ex,'whoosh',.8)}
+  if(V==='B'){tl.to(icon,{y:-90*u,opacity:0,duration:.4,ease:'power3.in'},ex);tl.to(wmWrap,{y:-90*u,opacity:0,duration:.4,ease:'power3.in'},ex+.05);fx(ex,'whoosh',.5)}
+  if(V==='C'){dots.forEach((d,i)=>tl.to(d,{x:dOff[i].dx*6,y:dOff[i].dy*6,scale:0,duration:.42,ease:'power3.in'},ex+i*.02));tl.to([xg],{scale:0,rotation:90,duration:.4,ease:'back.in(2)'},ex);tl.to(wmWrap,{opacity:0,x:40*u,duration:.35,ease:'power2.in'},ex);fx(ex,'swirl',.5)}
+  if(V==='D'){tl.to(icon,{scale:.0,duration:.42,ease:'back.in(2.2)'},ex);tl.to(wmWrap,{clipPath:'inset(-10% -2% -10% 100%)',duration:.35,ease:'power3.in'},ex-.05);fx(ex+.35,'pop',.6)}
+  tl.to(glow,{opacity:0,duration:.4},ex);
+} else {
+  const c0=bEnd+.75;D=c0+1.9;
+  tl.fromTo(cta,{opacity:0,y:50*u,scale:.92},{opacity:1,y:0,scale:1,duration:.7,ease:'back.out(1.6)'},c0);fx(c0,'pop',.5);
+  tl.fromTo(offer,{opacity:0,y:16*u},{opacity:.7,y:0,duration:.6,ease:'power3.out'},c0+.3);
+  tl.to(cta,{scale:.95,duration:.1,ease:'power2.in'},c0+1.1).to(cta,{scale:1,duration:.45,ease:'back.out(2)'},c0+1.2);fx(c0+1.1,'click',.6);
+  dots.forEach((d,i)=>tl.to(d,{scale:1.12,duration:.18,yoyo:true,repeat:1,ease:'sine.inOut',transformOrigin:'50% 50%'},c0+1.25+i*.07));
+}
+tl.fromTo(glow,{scale:.9},{scale:1.1,duration:D,ease:'sine.inOut'},0);
+tl.fromTo(st,{},{duration:D},0);
+// Target duration: ?duration= > brand.bumper.<kind>Duration > default (intro 3.5s; outro natural). The whole choreography is time-stretched (calmer eases + longer holds) and the SFX are re-timed to match.
+const BC=brand.bumper||{};const target=+(q.get('duration')||BC[kind+'Duration']||(kind==='intro'?3.5:0))||D;const K=target/D;
+sfx.forEach(e=>e.t*=K);D=target;
+window.seek=t=>{tl.seek(t/K,false);if(window.orbitAt)orbitAt(t/K)};
+window.qaCheck=()=>textEls.filter(e=>+getComputedStyle(e).opacity>.05).flatMap(e=>{const r=e.getBoundingClientRect();return (r.left<safe.l-1||r.right>safe.r+1||r.top<safe.t-1||r.bottom>safe.b+1)?[`"${e.textContent}" outside safe area`]:[]}).concat((()=>{const r=icon.getBoundingClientRect(),w=wmWrap.getBoundingClientRect();return (r.left<safe.l-1||w.right>safe.r+1)?['lockup outside safe area']:[]})());
+window.meta={W,H,duration:D,sfx,kind,variant:V,bg:DARK?'dark':'light',format:fmt,copy:textEls.map(e=>e.textContent)};
+seek(0);return true}
+window.ready=main();
+</script></body></html>

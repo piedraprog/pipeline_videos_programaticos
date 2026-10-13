@@ -9,7 +9,7 @@ export const CaptureActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('click'), selector: z.string().min(1), dialog: z.object({ message: z.string().min(1) }).optional() }),
   z.object({ type: z.literal('waitFor'), selector: z.string().min(1), text: z.string().min(1).optional() }),
   z.object({ type: z.literal('scroll'), selector: z.string().min(1) }),
-  z.object({ type: z.literal('screenshot'), selector: z.string().min(1).optional() }),
+  z.object({ type: z.literal('screenshot'), selector: z.string().min(1).optional(), boxes: z.record(z.string(), z.string().min(1)).optional() }),
 ]);
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);

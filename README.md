@@ -165,3 +165,17 @@ bunx tsc --noEmit
 ```
 
 Tests cover FPS-normalized timing, editorial settings, local paths, mobile defaults, screenshot counts, readiness/confirmation failures, and a real demo purchase/stock update. Browser tests use Node/Playwright and require installed Chromium. Tests do not replace PNG inspection and MP4 playback.
+
+## GSAP engine (brand videos + bumpers)
+
+```bash
+bun run setup                                            # deps, Chromium, ffmpeg (ffmpeg-static), Python numpy/pillow
+bun run render -- plans/selltly-9x16-light.json --qa-only  # QA gates + contact sheet
+bun run render -- plans/selltly-9x16-light.json            # full render -> projects/selltly-9x16-light/
+bun run render -- plans/selltly-9x16.json --motion-check
+bun run bumper -- brands/selltly/brand.json projects/bumpers-selltly intro:A:9x16:dark
+bun test
+```
+
+`bun run render` picks the engine: a plan with `"engine":"gsap"` goes to `engines/gsap/`; a project name renders with Remotion as before.
+Brand kits live in `brands/`, styles in `styles/`, and the modular authoring prompt is in `PROMPT.md`. The agent runbook is in `AGENTS.md`.
