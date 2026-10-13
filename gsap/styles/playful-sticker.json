@@ -1,0 +1,65 @@
+{
+  "name": "playful-sticker",
+  "description": "Playful. Cream background with floating brand dots (from the isotype), every word is a tilted sticker, rounded Fredoka type, elastic pops, device with thick outline + offset shadow. Bouncy marimba music.",
+  "theme": "light",
+  "roles": {
+    "background": "#fff4e6",
+    "text": "#16110f",
+    "accent": "#c6143a"
+  },
+  "background": {
+    "type": "confetti",
+    "particles": 0,
+    "grain": 0.0,
+    "vignette": false
+  },
+  "fonts": {
+    "display": {
+      "family": "Fredoka",
+      "src": "template/fonts/Fredoka.ttf",
+      "weight": 700,
+      "tracking": -0.01,
+      "transform": "none",
+      "lineHeight": 1.15
+    },
+    "keyword": {
+      "family": "Fredoka",
+      "src": "template/fonts/Fredoka.ttf",
+      "style": "normal",
+      "weight": 700
+    },
+    "label": {
+      "family": "Fredoka",
+      "src": "template/fonts/Fredoka.ttf",
+      "weight": 600
+    }
+  },
+  "text": {
+    "enter": "pop",
+    "align": "center",
+    "sticker": true,
+    "keyword": "sticker"
+  },
+  "motion": {
+    "enter": "back.out(1.7)",
+    "overshoot": "elastic.out(1,0.5)",
+    "camera": "back.inOut(1.2)",
+    "blur": 0,
+    "tilt": 0.6
+  },
+  "transition": {
+    "type": "overlap",
+    "overlap": 0.3
+  },
+  "device": {
+    "shadow": "hard"
+  },
+  "post": {
+    "glowPass": false,
+    "noise": 0
+  },
+  "audio": {
+    "music": "playful",
+    "bpm": 118
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "name": "kinetic-type",
+  "description": "Bold flat typographic. Solid brand-color fields that swap every scene with hard panel wipes on the beat, giant condensed uppercase (Anton), words slam in, no glow/grain. Punchy music.",
+  "theme": "light",
+  "roles": {
+    "text": "#16110f"
+  },
+  "background": {
+    "type": "flat-cycle",
+    "cycle": [
+      {
+        "bg": "#f4dc2a",
+        "fg": "#16110f",
+        "kw": "#c6143a"
+      },
+      {
+        "bg": "#c6143a",
+        "fg": "#fff7ef",
+        "kw": "#f4dc2a"
+      },
+      {
+        "bg": "#16110f",
+        "fg": "#fff7ef",
+        "kw": "#e84d20"
+      },
+      {
+        "bg": "#e84d20",
+        "fg": "#16110f",
+        "kw": "#fff7ef"
+      },
+      {
+        "bg": "#901440",
+        "fg": "#fff7ef",
+        "kw": "#f4dc2a"
+      }
+    ],
+    "particles": 0,
+    "grain": 0.0,
+    "vignette": false
+  },
+  "fonts": {
+    "display": {
+      "family": "Anton",
+      "src": "template/fonts/Anton.ttf",
+      "weight": 400,
+      "tracking": 0.0,
+      "transform": "uppercase",
+      "lineHeight": 1.0
+    },
+    "keyword": {
+      "family": "Anton",
+      "src": "template/fonts/Anton.ttf",
+      "style": "normal",
+      "weight": 400
+    },
+    "label": {
+      "family": "Inter",
+      "src": "template/fonts/Inter.ttf",
+      "weight": 800
+    }
+  },
+  "text": {
+    "enter": "slam",
+    "align": "center",
+    "sticker": false,
+    "keyword": "color",
+    "sizeBoost": 1.35
+  },
+  "motion": {
+    "enter": "power4.out",
+    "overshoot": "back.out(2)",
+    "camera": "power4.inOut",
+    "blur": 0,
+    "tilt": 0
+  },
+  "transition": {
+    "type": "panel-wipe",
+    "overlap": 0.3
+  },
+  "device": {
+    "shadow": "hard"
+  },
+  "post": {
+    "glowPass": false,
+    "noise": 0
+  },
+  "audio": {
+    "music": "punchy",
+    "bpm": 124
+  }
+}

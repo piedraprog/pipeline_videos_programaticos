@@ -4,9 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "capture": "node src/capture.ts",
     "render": "bun run src/render.ts",
-    "demo": "bun run capture -- plans/studio-store.json && bun run render -- studio-store"
+    "bumper": "node engines/gsap/tools/bumper.mjs",
+    "vectorize-logo": "python3 engines/gsap/tools/vectorize_logo.py",
+    "demo": "bun run capture -- plans/studio-store.json && bun run render -- studio-store",
+    "test": "bun test"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -24,7 +28,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "4.0.533",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "ffmpeg-static": "^5.2.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",

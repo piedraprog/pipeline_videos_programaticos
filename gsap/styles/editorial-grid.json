@@ -1,0 +1,66 @@
+{
+  "name": "editorial-grid",
+  "description": "Magazine/editorial. Warm paper, thin grid + rule lines, Fraunces serif headlines left-aligned, DM Mono labels, line-wipe reveals, slow crossfades, generous whitespace. Minimal piano-pluck music.",
+  "theme": "light",
+  "roles": {
+    "background": "#f3eee6",
+    "text": "#1b1514",
+    "textMuted": "#5c504b",
+    "accent": "#c6143a"
+  },
+  "background": {
+    "type": "paper-grid",
+    "particles": 0,
+    "grain": 0.03,
+    "vignette": false
+  },
+  "fonts": {
+    "display": {
+      "family": "Fraunces",
+      "src": "template/fonts/Fraunces.ttf",
+      "weight": 600,
+      "tracking": -0.025,
+      "transform": "none",
+      "lineHeight": 1.08
+    },
+    "keyword": {
+      "family": "FrauncesItalic",
+      "src": "template/fonts/Fraunces-Italic.ttf",
+      "style": "italic",
+      "weight": 400
+    },
+    "label": {
+      "family": "DMMono",
+      "src": "template/fonts/DMMono.ttf",
+      "weight": 500
+    }
+  },
+  "text": {
+    "enter": "wipe",
+    "align": "left",
+    "sticker": false,
+    "keyword": "color"
+  },
+  "motion": {
+    "enter": "power2.out",
+    "overshoot": "power3.out",
+    "camera": "power2.inOut",
+    "blur": 0,
+    "tilt": 0
+  },
+  "transition": {
+    "type": "overlap",
+    "overlap": 0.5
+  },
+  "device": {
+    "shadow": "editorial"
+  },
+  "post": {
+    "glowPass": false,
+    "noise": 2
+  },
+  "audio": {
+    "music": "minimal",
+    "bpm": 100
+  }
+}
