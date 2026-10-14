@@ -1,0 +1,86 @@
+{
+  "engine": "gsap",
+  "template": "stock",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "audio": "none",
+  "frame": "phone",
+  "bg": "light",
+  "capture": "projects/cap-store-importadora-mobile",
+  "output": "projects/stock-browse-importadora-9x16",
+  "duration": 8.2,
+  "steps": [
+    {
+      "at": 0,
+      "show": "home"
+    },
+    {
+      "at": 0,
+      "d": 2.2,
+      "camera": {
+        "zoom": 1.04
+      }
+    },
+    {
+      "at": 0.15,
+      "d": 3.6,
+      "scroll": "card",
+      "align": 0.22,
+      "ease": "power2.inOut"
+    },
+    {
+      "at": 2.7,
+      "d": 1.15,
+      "cursor": "card-link",
+      "fy": 0.55
+    },
+    {
+      "at": 2.4,
+      "d": 1.6,
+      "camera": {
+        "box": "card-link",
+        "zoom": 1.1,
+        "cy": 0.5
+      }
+    },
+    {
+      "at": 4.0,
+      "tap": "card-link"
+    },
+    {
+      "at": 4.25,
+      "show": "product",
+      "via": "push",
+      "d": 0.65
+    },
+    {
+      "at": 4.4,
+      "hideCursor": true,
+      "d": 0.3
+    },
+    {
+      "at": 4.2,
+      "d": 1.4,
+      "camera": {
+        "zoom": 1.03
+      }
+    },
+    {
+      "at": 5.0,
+      "d": 2.6,
+      "scroll": "add",
+      "align": 0.62,
+      "ease": "power2.inOut"
+    },
+    {
+      "at": 5.6,
+      "d": 2.4,
+      "camera": {
+        "box": "price",
+        "zoom": 1.12,
+        "cy": 0.5
+      }
+    }
+  ]
+}

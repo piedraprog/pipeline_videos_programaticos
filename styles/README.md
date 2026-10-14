@@ -7,7 +7,7 @@ Each `*.json` is a visual "recipe" that the template reads (`plan.style`). If th
 | light-corporate | Light background, clean, soft motion | corporate 116 |
 | kinetic-type | Anton uppercase, flat colors cycling per scene, slam, panel-wipe, hard shadow | punchy 124 |
 | editorial-grid | Paper with grid, Fraunces + DM Mono, wipe, left aligned | minimal 100 |
-| playful-sticker | Fredoka, confetti in brand colors, sticker words, elastic pop | playful 118 |
+| ~~playful-sticker~~ | **DEPRECATED — not allowed** (rejected by Jose 2026-10-14). The render fails if a plan uses it. | — |
 
 Fields:
 - `theme`, `roles`
@@ -21,3 +21,5 @@ Fields:
 - `audio{music,bpm}`
 
 To create a new style: copy the closest one, change the fields, then run `--qa-only` and look at the contact sheet.
+
+A style JSON with `"deprecated": "<reason>"` is blocked: the gsap engine throws and the render fails.

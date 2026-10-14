@@ -1,0 +1,80 @@
+{
+  "projectName": "cap-admin-restore",
+  "title": "Restore admin demo data",
+  "subtitle": "Restores price and visibility",
+  "baseUrl": "http://localhost:4200/products/c3120001-0000-4000-8000-000000000004",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "fps": 60,
+  "session": {
+    "load": ".sessions/admin-reposteria.json"
+  },
+  "scenes": [
+    {
+      "id": "restore-price",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "waitFor",
+          "selector": "#product-section-ficha"
+        },
+        {
+          "type": "click",
+          "selector": "button:has-text(\"Editar\") >> nth=0"
+        },
+        {
+          "type": "fill",
+          "selector": "#product-price",
+          "value": "36"
+        },
+        {
+          "type": "click",
+          "selector": "button.product-detail-header-cta:has-text(\"Guardar cambios\")",
+          "optional": true
+        },
+        {
+          "type": "waitFor",
+          "selector": "button",
+          "text": "Ver en tienda"
+        },
+        {
+          "type": "screenshot"
+        }
+      ]
+    },
+    {
+      "id": "restore-visible",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "p-toggleswitch:not(.p-toggleswitch-checked):has(#product-visible)",
+          "optional": true
+        },
+        {
+          "type": "click",
+          "selector": "button.product-detail-header-cta:has-text(\"Guardar cambios\")",
+          "optional": true
+        },
+        {
+          "type": "waitFor",
+          "selector": "p-toggleswitch.p-toggleswitch-checked:has(#product-visible)"
+        },
+        {
+          "type": "waitFor",
+          "selector": "button",
+          "text": "Ver en tienda"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "summary": "text=disponibles >> nth=0",
+            "visible": "p-toggleswitch:has(#product-visible)"
+          }
+        }
+      ]
+    }
+  ]
+}

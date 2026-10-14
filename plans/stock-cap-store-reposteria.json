@@ -1,0 +1,163 @@
+{
+  "projectName": "cap-store-reposteria",
+  "title": "Stock capture",
+  "subtitle": "No on-screen text",
+  "baseUrl": "http://demo-reposteria.localtest.me:4321",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "fps": 60,
+  "scenes": [
+    {
+      "id": "home",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "css",
+          "css": "astro-dev-toolbar{display:none!important}"
+        },
+        {
+          "type": "click",
+          "selector": "button:has-text(\"Entendido\")",
+          "optional": true
+        },
+        {
+          "type": "waitFor",
+          "selector": "article.product-card"
+        },
+        {
+          "type": "scrollTo",
+          "selector": "article.product-card:has(a[href=\"/producto/torta-tres-leches\"])"
+        },
+        {
+          "type": "scrollTo",
+          "y": 0
+        },
+        {
+          "type": "screenshot",
+          "fullPage": true,
+          "maxHeight": 5200,
+          "boxes": {
+            "card": "article.product-card:has(a[href=\"/producto/torta-tres-leches\"])",
+            "card-link": "article.product-card:has(a[href=\"/producto/torta-tres-leches\"]) a.product-card__media",
+            "first-card": "article.product-card"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "navigate",
+          "url": "http://demo-reposteria.localtest.me:4321/producto/torta-tres-leches"
+        },
+        {
+          "type": "css",
+          "css": "astro-dev-toolbar{display:none!important}"
+        },
+        {
+          "type": "waitFor",
+          "selector": ".product-actions__btn-primary"
+        },
+        {
+          "type": "screenshot",
+          "fullPage": true,
+          "maxHeight": 2600,
+          "boxes": {
+            "price": ".product-detail__price-primary",
+            "add": ".product-actions__btn-primary",
+            "image": "main img"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cart-product",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "navigate",
+          "url": "http://demo-reposteria.localtest.me:4321/producto/torta-red-velvet-8p"
+        },
+        {
+          "type": "css",
+          "css": "astro-dev-toolbar{display:none!important}"
+        },
+        {
+          "type": "waitFor",
+          "selector": ".product-actions__btn-primary"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "add": ".product-actions__btn-primary",
+            "plus": "button[aria-label=\"Aumentar cantidad\"]",
+            "cart": ".cart-btn",
+            "price": ".product-detail__price-primary",
+            "name": "h1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cart-added",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[aria-label=\"Aumentar cantidad\"]"
+        },
+        {
+          "type": "click",
+          "selector": ".product-actions__btn-primary"
+        },
+        {
+          "type": "waitFor",
+          "selector": "button",
+          "text": "Entendido"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "ok": "button:has-text(\"Entendido\")",
+            "cart": ".cart-btn"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cart-open",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button:has-text(\"Entendido\")"
+        },
+        {
+          "type": "click",
+          "selector": ".cart-btn"
+        },
+        {
+          "type": "waitFor",
+          "selector": ".cart-drawer a",
+          "text": "Coordinar pedido"
+        },
+        {
+          "type": "hover",
+          "selector": ".cart-drawer a:has-text(\"Coordinar pedido\")"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "checkout": ".cart-drawer a:has-text(\"Coordinar pedido\")",
+            "drawer": ".cart-drawer__body",
+            "total": ".cart-drawer__footer"
+          }
+        }
+      ]
+    }
+  ]
+}

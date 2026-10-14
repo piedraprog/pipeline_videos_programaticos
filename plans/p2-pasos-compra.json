@@ -1,0 +1,76 @@
+{
+ "engine": "gsap",
+ "brand": "brands/selltly/brand.json",
+ "format": "9x16",
+ "fps": 60,
+ "outFps": 30,
+ "seed": 20261014,
+ "output": "projects/p2-pasos-compra",
+ "style": "editorial-grid",
+ "bpm": 100,
+ "scenes": [
+  {
+   "type": "device",
+   "device": "phone",
+   "image": "projects/cap-store-reposteria-mobile/assets/home.png",
+   "srcWidth": 390,
+   "tap": {
+    "x": 195,
+    "y": 705
+   },
+   "url": "dulcehorno.selltly.com",
+   "zoom": 1.5,
+   "beats": 8,
+   "kicker": "Paso 1",
+   "title": "*Entras* a la tienda."
+  },
+  {
+   "type": "device",
+   "device": "phone",
+   "image": "projects/cap-store-reposteria-mobile/assets/product.png",
+   "srcWidth": 390,
+   "tap": {
+    "x": 259,
+    "y": 755
+   },
+   "url": "dulcehorno.selltly.com",
+   "zoom": 1.5,
+   "beats": 8,
+   "after": "projects/cap-store-reposteria-mobile/assets/cart-added.png",
+   "kicker": "Paso 2",
+   "title": "*Eliges* lo que quieres."
+  },
+  {
+   "type": "device",
+   "device": "phone",
+   "image": "projects/cap-store-reposteria-mobile/assets/cart-open.png",
+   "srcWidth": 390,
+   "tap": {
+    "x": 195,
+    "y": 829
+   },
+   "url": "dulcehorno.selltly.com",
+   "zoom": 1.5,
+   "beats": 8,
+   "hoverOnly": true,
+   "kicker": "Paso 3",
+   "title": "*Pides* en un toque."
+  },
+  {
+   "type": "device",
+   "device": "phone",
+   "image": "projects/stock-whatsapp-order-9x16/qa/scene-1-sent.png",
+   "srcWidth": 608,
+   "tap": {
+    "x": 279,
+    "y": 217
+   },
+   "url": "wa.me/584241780163",
+   "zoom": 1.5,
+   "beats": 8,
+   "hoverOnly": true,
+   "kicker": "Paso 4",
+   "title": "Te llega a *WhatsApp*."
+  }
+ ]
+}

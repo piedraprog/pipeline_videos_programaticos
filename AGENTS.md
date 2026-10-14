@@ -85,8 +85,8 @@ Layout (everything shared, nothing in side folders):
 New video for any brand:
 1. **Brand kit:** copy `brands/selltly` as a template. Fill in palette/themes/logo. Vectorize the logo with `bun run vectorize-logo` (needs `pip install potracer`).
 2. **Messaging:** write `messaging.md` only from the brand's own sources, and cite them. Put the real CTAs and claims in `brand.json → messaging`. List anything the brand does not offer in `forbidden` (e.g. "gratis" when there is no free plan). The render fails if forbidden copy appears (accent-insensitive). Never invent prices or promotions.
-3. **Style:** set `"style"` to dark-glow | light-corporate | kinetic-type | editorial-grid | playful-sticker, or a new one in `styles/`.
-4. **Story:** a hook, 2–4 device beats over `brands/<b>/shots/*`, short phrases, and an outro with a real CTA. Spanish copy uses neutral tú. No step counters.
+3. **Style:** set `"style"` to dark-glow | light-corporate | kinetic-type | editorial-grid (playful-sticker is deprecated), or a new one in `styles/`.
+4. **Story:** a hook, 2–4 device beats over `brands/<b>/shots/*`, short phrases, and a real CTA as the last content beat (no outro scene; bumpers are separate assets). Spanish copy uses neutral tú. No step counters.
 5. **Format:** `"format"` 9x16 | 16x9 | 1x1.
 6. **Run:**
    - `bun run render -- plans/<name>.json --qa-only`. Fix every QA FAIL, then open `projects/<name>/contact-sheet.png`.
@@ -104,3 +104,8 @@ QA gates (all must pass before claiming success):
 - QA checks: safe area, text overflow, letters clipped by masks, forbidden messaging, `--motion-check` spikes.
 - Then inspect the contact sheet and frames yourself. A passing exit code is not visual proof.
 - `bun test` must stay green; it needs Node >= 24.
+
+## Delivery rules (Jose, 2026-10-14)
+- No se genera voice over/TTS; la locución la graba Jose. Do not synthesize or mux any voice. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
+- Videos are delivered without intro or outro. Bumpers (`bun run bumper`) are separate assets; Jose adds them in post. Do not concatenate bumpers or use an `outro` scene at the end of a piece; end cleanly on the last content scene with the music faded out.
+- Style `playful-sticker` is deprecated/not allowed.

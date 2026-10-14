@@ -1,0 +1,28 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-inserto-test-3-pasos",
+ "style": "light-corporate",
+  "bpm": 116,
+  "scenes": [
+    {
+      "type": "phrase",
+      "beats": 3.2,
+      "copy": "✓ Vendes con *catálogo o menú*."
+    },
+    {
+      "type": "phrase",
+      "beats": 3.2,
+      "copy": "✓ Mueres atendiendo *chats*."
+    },
+    {
+      "type": "phrase",
+      "beats": 3.2,
+      "copy": "✓ Quieres orden *sin complicarte*."
+    }
+  ]
+}

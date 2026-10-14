@@ -1,0 +1,87 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-vo-selltly",
+  "style": "dark-glow",
+  "bpm": 120,
+  "scenes": [
+    {
+      "type": "device",
+      "device": "laptop",
+      "image": "projects/cap-admin-reposteria/assets/editing.png",
+      "srcWidth": 1440,
+      "tap": {
+        "x": 1337,
+        "y": 85
+      },
+      "url": "admin.selltly.com",
+      "zoom": 1.6,
+      "beats": 6,
+      "after": "projects/cap-admin-reposteria/assets/saved.png",
+      "kicker": "Precios",
+      "title": "Actualizas precios *en segundos*."
+    },
+    {
+      "type": "device",
+      "device": "laptop",
+      "image": "projects/cap-admin-reposteria/assets/saved.png",
+      "srcWidth": 1440,
+      "tap": {
+        "x": 1391,
+        "y": 193
+      },
+      "url": "admin.selltly.com",
+      "zoom": 1.6,
+      "beats": 6,
+      "after": "projects/cap-admin-reposteria/assets/hidden.png",
+      "kicker": "Disponibilidad",
+      "title": "Muestra solo *lo disponible*."
+    },
+    {
+      "type": "device",
+      "device": "phone",
+      "image": "projects/cap-store-reposteria-mobile/assets/product.png",
+      "srcWidth": 390,
+      "tap": {
+        "x": 259,
+        "y": 755
+      },
+      "url": "dulcehorno.selltly.com",
+      "zoom": 1.5,
+      "beats": 6,
+      "after": "projects/cap-store-reposteria-mobile/assets/cart-added.png",
+      "kicker": "Tu tienda",
+      "title": "Tu cliente *arma su pedido*."
+    },
+    {
+      "type": "device",
+      "device": "phone",
+      "image": "projects/stock-whatsapp-order-9x16/qa/scene-1-sent.png",
+      "srcWidth": 608,
+      "tap": {
+        "x": 279,
+        "y": 217
+      },
+      "url": "wa.me/584241780163",
+      "zoom": 1.5,
+      "beats": 6,
+      "hoverOnly": true,
+      "kicker": "Directo a WhatsApp",
+      "title": "Te llega *todo organizado*."
+    },
+    {
+      "type": "phrase",
+      "beats": 4,
+      "copy": "Deja de perder *clientes*."
+    },
+    {
+      "type": "hook",
+      "beats": 16,
+      "copy": "Contáctanos: *+58 424-1780163*"
+    }
+  ]
+}

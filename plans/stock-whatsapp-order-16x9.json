@@ -1,0 +1,32 @@
+{
+  "engine": "gsap",
+  "template": "whatsapp",
+  "format": "16x9",
+  "fps": 60,
+  "outFps": 30,
+  "audio": "none",
+  "output": "projects/stock-whatsapp-order-16x9",
+  "duration": 7.6,
+  "chat": {
+    "time": "10:24",
+    "initials": "DH",
+    "name": "Dulce Horno",
+    "subtitle": "+58 424-1780163",
+    "draftPreview": "Nuevo Pedido #102 · Cliente: María · Total USD 121,00",
+    "order": [
+      "*Nuevo Pedido #102*",
+      "Cliente: María",
+      "",
+      "1 × Torta red velvet 8p",
+      "   USD 45,00",
+      "2 × Torta tres leches",
+      "   USD 76,00 (USD 38,00 c/u)",
+      "",
+      "*Total: USD 121,00*"
+    ],
+    "sentAt": "10:24",
+    "reply": "¡Hola, María! Recibimos tu pedido. Te confirmo en un momento.",
+    "replyAt": "10:25",
+    "source": "Prices from projects cap-store-reposteria (cart drawer: 1× Torta red velvet 8p USD 45,00; 2× Torta tres leches USD 38,00 c/u; Total USD 121,00)"
+  }
+}

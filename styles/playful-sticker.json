@@ -10,7 +10,7 @@
   "background": {
     "type": "confetti",
     "particles": 0,
-    "grain": 0.0,
+    "grain": 0,
     "vignette": false
   },
   "fonts": {
@@ -61,5 +61,6 @@
   "audio": {
     "music": "playful",
     "bpm": 118
-  }
+  },
+  "deprecated": "Rechazado por Jose (2026-10-14): no usar. Elige otro estilo."
 }

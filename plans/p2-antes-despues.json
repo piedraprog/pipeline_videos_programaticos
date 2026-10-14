@@ -1,0 +1,86 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-antes-despues",
+  "style": "kinetic-type",
+  "bpm": 124,
+  "scenes": [
+    {
+      "type": "phrase",
+      "beats": 8,
+      "copy": "3 formas de vender *por internet*."
+    },
+    {
+      "type": "device",
+      "device": "phone",
+      "image": "projects/stock-whatsapp-order-9x16/qa/scene-1-sent.png",
+      "srcWidth": 608,
+      "tap": {
+        "x": 200,
+        "y": 330
+      },
+      "url": "wa.me",
+      "zoom": 1.5,
+      "beats": 11,
+      "hoverOnly": true,
+      "kicker": "Opción 1",
+      "title": "Fotos en WhatsApp = *caos*."
+    },
+    {
+      "type": "device",
+      "device": "laptop",
+      "image": "projects/stock-browse-importadora-9x16/qa/scene-2-product.png",
+      "srcWidth": 608,
+      "tap": {
+        "x": 665,
+        "y": 366
+      },
+      "hoverOnly": true,
+      "zoom": 1.5,
+      "url": "mitienda.com/wp-admin",
+      "beats": 10,
+      "kicker": "Opción 2",
+      "title": "Webs complejas = *costosas*."
+    },
+    {
+      "type": "device",
+      "device": "phone",
+      "image": "projects/cap-store-reposteria-mobile/assets/home.png",
+      "srcWidth": 390,
+      "tap": {
+        "x": 195,
+        "y": 705
+      },
+      "url": "dulcehorno.selltly.com",
+      "zoom": 1.5,
+      "beats": 10,
+      "kicker": "Opción 3",
+      "title": "*Selltly*: catálogo claro."
+    },
+    {
+      "type": "device",
+      "device": "phone",
+      "image": "projects/stock-whatsapp-order-9x16/qa/scene-1-sent.png",
+      "srcWidth": 608,
+      "tap": {
+        "x": 279,
+        "y": 217
+      },
+      "url": "wa.me/584241780163",
+      "zoom": 1.5,
+      "beats": 8,
+      "hoverOnly": true,
+      "kicker": "Opción 3",
+      "title": "Pedido directo a tu *WhatsApp*."
+    },
+    {
+      "type": "phrase",
+      "beats": 5,
+      "copy": "Pon orden a tu *negocio hoy*."
+    }
+  ]
+}

@@ -132,5 +132,12 @@
   "bumper": {
     "introDuration": 3.5,
     "outroDuration": null
+  },
+  "production": {
+    "voiceover": "No se genera voice over/TTS; la locución la graba Jose.",
+    "introOutro": "Los videos se entregan sin intro ni outro; los bumpers son assets separados que Jose agrega en post.",
+    "deprecatedStyles": [
+      "playful-sticker"
+    ]
   }
 }

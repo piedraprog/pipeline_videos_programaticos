@@ -1,0 +1,20 @@
+$ bun run src/render.ts "plans/stock-admin-price-update-9x16.json"
+QA scene 1 (tap-submit) @1.50s: ok
+QA scene 2 (products) @2.40s: ok
+QA scene 3 (tap-row) @3.00s: ok
+QA scene 4 (product) @3.90s: ok
+QA scene 5 (tap-edit) @4.50s: ok
+QA scene 6 (editing) @5.35s: ok
+QA scene 7 (tap-save) @6.00s: ok
+QA scene 8 (saved) @6.85s: ok
+QA scene 9 (tap-visible) @7.40s: ok
+QA scene 10 (hidden) @8.25s: ok
+QA scene 11 (hidden) @9.75s: ok
+STAGE qa: 1.3s
+frame 120/588
+frame 240/588
+frame 360/588
+frame 480/588
+STAGE frames: 588 frames, 6 workers, 80.2s
+STAGE ffmpeg: 4.9s
+Rendered C:\Users\gordo\Documents\Development\personal\p_boilerplate\pipeline_videos_programaticos\projects\stock-admin-price-update-9x16\stock-admin-price-update-9x16.mp4

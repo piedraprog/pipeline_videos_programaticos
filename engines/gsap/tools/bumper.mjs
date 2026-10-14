@@ -13,11 +13,11 @@ for(const job of jobs){const [kind,variant,format,bg]=job.split(':');const name=
   p.on('pageerror',e=>{console.error(name,'page error',e.message);failed=true});
   await p.goto(`http://localhost:${srv.address().port}/engines/gsap/bumper.html?brand=${encodeURIComponent(brand)}&kind=${kind}&variant=${variant}&format=${format}&bg=${bg}`);
   await p.evaluate(()=>window.ready);const meta=await p.evaluate(()=>window.meta);
-  for(const [k,f] of [.2,.42,.62,.97].entries()){await p.evaluate(t=>seek(t),meta.duration*f);if(f===(kind==='intro'?.62:.97)){const iss=await p.evaluate(()=>qaCheck());if(iss.length){console.log(name,'QA FAIL',iss);failed=true}}
+  for(const [k,f] of [.2,.42,.62,.97].entries()){await p.evaluate(t=>{seek(t)},meta.duration*f);if(f===(kind==='intro'?.62:.97)){const iss=await p.evaluate(()=>qaCheck());if(iss.length){console.log(name,'QA FAIL',iss);failed=true}}
     await p.screenshot({path:path.join(out,'qa',`${name}-${k}.png`)})}
   console.log(`${name}: ${meta.duration.toFixed(2)}s, ${meta.sfx.length} sfx`);
   if(!qaOnly){const fd=path.join(out,'frames-'+name);fs.rmSync(fd,{recursive:true,force:true});fs.mkdirSync(fd);
-    const n=Math.round(meta.duration*60);for(let i=0;i<n;i++){await p.evaluate(t=>seek(t),i/60);await p.screenshot({path:path.join(fd,`f${String(i).padStart(5,'0')}.png`)})}
+    const n=Math.round(meta.duration*60);for(let i=0;i<n;i++){await p.evaluate(t=>{seek(t)},i/60);await p.screenshot({path:path.join(fd,`f${String(i).padStart(5,'0')}.png`)})}
     fs.writeFileSync(path.join(out,name+'.json'),JSON.stringify(meta));execFileSync(PY,[path.join(ROOT,'engines/gsap/tools/sfx.py'),path.join(out,name+'.json'),path.join(out,name+'.wav')]);
     execFileSync(FF,['-y','-loglevel','error','-framerate','60','-i',path.join(fd,'f%05d.png'),'-i',path.join(out,name+'.wav'),'-filter_complex',`[0:v]format=gbrp,tmix=frames=2,fps=30,format=yuv420p[v]`,'-map','[v]','-map','1:a','-c:v','libx264','-crf','17','-preset','slow','-c:a','aac','-b:a','192k','-shortest','-movflags','+faststart',path.join(out,name+'.mp4')]);
     fs.rmSync(fd,{recursive:true,force:true});fs.rmSync(path.join(out,name+'.wav'));console.log('  ->',name+'.mp4')}

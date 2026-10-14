@@ -1,0 +1,20 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-inserto-whatsapp",
+  "style": "light-corporate",
+  "bpm": 116,
+  "scenes": [
+    {
+      "type": "outro",
+      "beats": 10,
+      "tagline": "*+58 424-1780163*",
+      "offer": "WhatsApp",
+      "cta": "Enviar mensaje ➤"
+    }
+  ]
+}

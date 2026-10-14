@@ -1,0 +1,179 @@
+{
+  "projectName": "cap-admin-reposteria",
+  "title": "Stock capture",
+  "subtitle": "No on-screen text",
+  "baseUrl": "http://localhost:4200/login",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "fps": 60,
+  "session": {
+    "save": ".sessions/admin-reposteria.json"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "waitFor",
+          "selector": "#email"
+        },
+        {
+          "type": "fill",
+          "selector": "#email",
+          "valueEnv": "SELLTLY_ADMIN_EMAIL",
+          "typeDelayMs": 35
+        },
+        {
+          "type": "fill",
+          "selector": "#password",
+          "valueEnv": "SELLTLY_ADMIN_PASSWORD",
+          "typeDelayMs": 35
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "email": "#email",
+            "password": "#password",
+            "submit": "button.auth-button",
+            "card": "form"
+          }
+        }
+      ]
+    },
+    {
+      "id": "products",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button.auth-button"
+        },
+        {
+          "type": "waitFor",
+          "selector": "a[href=\"/orders\"]"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:4200/products"
+        },
+        {
+          "type": "waitFor",
+          "selector": "a[href=\"/products/c3120001-0000-4000-8000-000000000004\"]"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "row": "a[href=\"/products/c3120001-0000-4000-8000-000000000004\"]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "a[href=\"/products/c3120001-0000-4000-8000-000000000004\"]"
+        },
+        {
+          "type": "waitFor",
+          "selector": "#product-section-ficha"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "edit": "button:has-text(\"Editar\") >> nth=0",
+            "visible": "p-toggleswitch:has(#product-visible)",
+            "title": "h1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "editing",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button:has-text(\"Editar\") >> nth=0"
+        },
+        {
+          "type": "fill",
+          "selector": "#product-price",
+          "value": "39",
+          "typeDelayMs": 140
+        },
+        {
+          "type": "waitFor",
+          "selector": "button.product-detail-header-cta:has-text(\"Guardar cambios\")"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "input": "#product-price",
+            "save": "button.product-detail-header-cta:has-text(\"Guardar cambios\")",
+            "visible": "p-toggleswitch:has(#product-visible)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "saved",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button.product-detail-header-cta:has-text(\"Guardar cambios\")"
+        },
+        {
+          "type": "waitFor",
+          "selector": "button",
+          "text": "Ver en tienda"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "visible": "p-toggleswitch:has(#product-visible)",
+            "title": "h1",
+            "edit": "button:has-text(\"Editar\") >> nth=0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hidden",
+      "durationFrames": 60,
+      "actions": [
+        {
+          "type": "click",
+          "selector": "p-toggleswitch:has(#product-visible)"
+        },
+        {
+          "type": "click",
+          "selector": "button.product-detail-header-cta:has-text(\"Guardar cambios\")",
+          "optional": true
+        },
+        {
+          "type": "waitFor",
+          "selector": "p-toggleswitch:not(.p-toggleswitch-checked):has(#product-visible)"
+        },
+        {
+          "type": "waitFor",
+          "selector": "button",
+          "text": "Ver en tienda"
+        },
+        {
+          "type": "screenshot",
+          "boxes": {
+            "visible": "p-toggleswitch:has(#product-visible)",
+            "title": "h1"
+          }
+        }
+      ]
+    }
+  ]
+}
