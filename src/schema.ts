@@ -6,10 +6,24 @@ const pageLocation = z.union([z.string().url(), z.string().regex(/^\.{1,2}\//, '
 
 export const CaptureActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('navigate'), url: pageLocation }),
-  z.object({ type: z.literal('click'), selector: z.string().min(1), dialog: z.object({ message: z.string().min(1) }).optional() }),
+  z.object({ type: z.literal('click'), selector: z.string().min(1), dialog: z.object({ message: z.string().min(1) }).optional(), optional: z.boolean().optional() }),
   z.object({ type: z.literal('waitFor'), selector: z.string().min(1), text: z.string().min(1).optional() }),
   z.object({ type: z.literal('scroll'), selector: z.string().min(1) }),
-  z.object({ type: z.literal('screenshot'), selector: z.string().min(1).optional(), boxes: z.record(z.string(), z.string().min(1)).optional() }),
+  // Real smooth scroll in the page (wheel-like, eased), waits until the scroll position settles (lazy images load).
+  z.object({ type: z.literal('scrollTo'), selector: z.string().min(1).optional(), y: z.number().min(0).optional(), smooth: z.boolean().default(true) }),
+  // Form input. valueEnv reads a process environment variable (credentials) so secrets never live in plan files.
+  z.object({ type: z.literal('fill'), selector: z.string().min(1), value: z.string().optional(), valueEnv: z.string().regex(/^[A-Z][A-Z0-9_]*$/).optional(), typeDelayMs: z.number().int().min(0).max(500).optional() })
+    .refine((a) => (a.value === undefined) !== (a.valueEnv === undefined), 'fill needs exactly one of value or valueEnv.'),
+  z.object({ type: z.literal('press'), key: z.string().min(1) }),
+  z.object({ type: z.literal('hover'), selector: z.string().min(1) }),
+  // Inject CSS before capturing (e.g. hide dev toolbars or cookie notices). Never use it to fake content.
+  z.object({ type: z.literal('css'), css: z.string().min(1).max(4000) }),
+  z.object({
+    type: z.literal('screenshot'), selector: z.string().min(1).optional(),
+    // Named element boxes (CSS px relative to the image, plus short innerText) for the GSAP engine camera/cursor.
+    boxes: z.record(z.string(), z.string().min(1)).optional(),
+    fullPage: z.boolean().optional(), maxHeight: z.number().int().positive().max(8000).optional(),
+  }),
 ]);
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -83,6 +97,8 @@ export const VideoPlanSchema = z.object({
   baseUrl: pageLocation,
   viewport: z.object({ width: z.number().int().positive().default(390), height: z.number().int().positive().default(844) }).default({ width: 390, height: 844 }),
   fps: z.number().int().min(1).max(60).default(30),
+  // Browser session reuse (cookies/localStorage) to avoid repeated logins; paths relative to the repo, keep them in .sessions/ (gitignored).
+  session: z.object({ load: z.string().regex(/^\.sessions\/[a-z0-9-]+\.json$/).optional(), save: z.string().regex(/^\.sessions\/[a-z0-9-]+\.json$/).optional() }).optional(),
   scenes: z.array(z.object({
     id: safeName,
     title: z.string().trim().min(1).max(60).optional(),

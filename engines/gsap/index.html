@@ -42,7 +42,7 @@ const [W,H]=FORMATS[plan.format];const S=SAFE[plan.format];const u=Math.min(W,H)
 const safe={l:W*S.x,r:W-W*S.x,t:H*S.t,b:H-H*S.b};safe.w=safe.r-safe.l;safe.h=safe.b-safe.t;
 // STYLE: a recipe from styles/<name>.json (typography, background, text motion, transitions, device, post, audio)
 const styleName=plan.style||((plan.theme||brand.theme)==='light'?'light-corporate':'dark-glow');
-const STY=await (await fetch(root+'styles/'+styleName+'.json')).json();
+const STY=await (await fetch(root+'styles/'+styleName+'.json')).json();if(STY.deprecated)throw new Error('Style '+styleName+' is deprecated: '+STY.deprecated);
 const THEME=STY.theme||'dark',LIGHT=THEME==='light';
 const R={...brand.roles,...((brand.themes||{})[THEME]||{}),...(STY.roles||{})};
 const F={...brand.fonts,...STY.fonts};const TX=STY.text,MO=STY.motion,BG=STY.background;

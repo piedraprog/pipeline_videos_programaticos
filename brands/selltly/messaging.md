@@ -53,3 +53,8 @@ Language swaps [OP]: SaaS multi-tenant → "Tu tienda digital"; Checkout ecommer
 
 ## 7. Forbidden / do not claim as current
 "gratis"/free, prueba gratis, "Crea tu tienda gratis", "Crear mi tienda"; pago integrado/pasarela en checkout; dominio propio (.com); automatización total, IA operativa, "plataforma autónoma"; Google Shopping/GBP, CRM avanzado; claims fintech; varios planes; comisiones "ocultas" framing (say "sin comisión por venta"); "lista hoy"/instant setup (activation is manual). [OP][PR][FT]
+
+## 8. Producción (regla de Jose, 2026-10-14)
+- No se genera voice over/TTS; la locución la graba Jose.
+- Los videos se entregan sin intro ni outro; los bumpers son assets separados.
+- Estilo playful-sticker rechazado.

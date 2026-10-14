@@ -1,0 +1,104 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Stock clip</title>
+<style>html,body{margin:0;overflow:hidden;background:#000}#st{position:relative;overflow:hidden}.abs{position:absolute;left:0;top:0}img{display:block}</style>
+<script src="lib/gsap.min.js"></script></head><body><div id="st"></div>
+<script type="module">
+// Brand-neutral stock clips with NO on-screen text: real captured screens (projects/<capture>/assets) inside a phone,
+// browser window or full-bleed, with a continuous eased camera, real scroll through full-page captures, and a
+// cursor/finger that lands on real element boxes recorded at capture time. Deterministic: paused timeline + seek(t).
+const q=new URLSearchParams(location.search);const root='../../';
+const plan=await (await fetch(root+q.get('plan'))).json();
+const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[plan.format];const u=Math.min(W,H)/1080;
+const cap=plan.capture;const capPlan=await (await fetch(root+cap+'/plan.json')).json();
+const VW=capPlan.viewport.width,VH=capPlan.viewport.height;
+const ids=[...new Set(plan.steps.filter(s=>s.show).map(s=>s.show))];
+const shots={};
+for(const id of ids){const r=await fetch(root+`${cap}/assets/${id}.boxes.json`);shots[id]={id,boxes:r.ok?await r.json():{}}}
+const st=document.getElementById('st');Object.assign(st.style,{width:W+'px',height:H+'px'});
+const $=(tag,cls,parent,style)=>{const e=document.createElement(tag);if(cls)e.className=cls;Object.assign(e.style,style||{});(parent||st).appendChild(e);return e};
+const DARK=plan.bg==='dark';
+// background: neutral, soft light falloff (no brand colors)
+const bg=$('div','abs',st,{width:W+'px',height:H+'px',background:DARK?'radial-gradient(120% 90% at 50% 30%,#2a2d33 0%,#16181b 60%,#0e0f11 100%)':'radial-gradient(120% 90% at 50% 25%,#fbfaf8 0%,#eeebe6 55%,#e2ded7 100%)'});
+const cam=$('div','abs',st,{width:W+'px',height:H+'px',transformOrigin:'0 0'});
+const drift=$('div','abs',cam,{width:W+'px',height:H+'px'});
+// device geometry
+const frame=plan.frame||'phone';let k,sx,sy,sw,sh,dev,scr;
+if(frame==='phone'){k=(plan.screenWidth||0.64)*W/VW;if(VH*k>0.84*H)k=0.84*H/VH;sw=VW*k;sh=VH*k;const bz=16*u;sx=(W-sw)/2;sy=(H-sh)/2;
+  dev=$('div','abs',drift,{left:sx-bz+'px',top:sy-bz+'px',width:sw+2*bz+'px',height:sh+2*bz+'px',borderRadius:62*u+'px',background:'#0c0c0e',boxShadow:`0 ${60*u}px ${120*u}px rgba(0,0,0,${DARK?.55:.22}),0 ${10*u}px ${30*u}px rgba(0,0,0,.18),inset 0 0 0 ${2*u}px #2a2a2e`});
+  scr=$('div','abs',drift,{left:sx+'px',top:sy+'px',width:sw+'px',height:sh+'px',borderRadius:48*u+'px',overflow:'hidden',background:'#fff'});
+}else if(frame==='browser'){const bar=46*u;k=Math.min((plan.screenWidth||0.84)*W/VW,(0.86*H-bar)/VH);sw=VW*k;sh=VH*k;sx=(W-sw)/2;sy=(H-sh-bar)/2+bar;
+  dev=$('div','abs',drift,{left:sx+'px',top:sy-bar+'px',width:sw+'px',height:sh+bar+'px',borderRadius:16*u+'px',background:DARK?'#24262b':'#f4f3f1',boxShadow:`0 ${50*u}px ${110*u}px rgba(0,0,0,${DARK?.5:.2}),0 0 0 ${1*u}px rgba(0,0,0,.08)`,overflow:'hidden'});
+  ['#ff5f57','#febc2e','#28c840'].forEach((c,i)=>$('div','abs',dev,{left:(20+i*22)*u+'px',top:17*u+'px',width:12*u+'px',height:12*u+'px',borderRadius:'50%',background:c}));
+  $('div','abs',dev,{left:sw*0.3+'px',top:10*u+'px',width:sw*0.4+'px',height:26*u+'px',borderRadius:13*u+'px',background:DARK?'#33363c':'#e6e4e0'});
+  scr=$('div','abs',drift,{left:sx+'px',top:sy+'px',width:sw+'px',height:sh+'px',overflow:'hidden',background:'#fff',borderRadius:`0 0 ${16*u}px ${16*u}px`});
+}else{k=Math.max(W/VW,H/VH)*(plan.bleedZoom||1);sw=VW*k;sh=VH*k;sx=(W-sw)/2;sy=(H-sh)/2;scr=$('div','abs',drift,{left:sx+'px',top:sy+'px',width:sw+'px',height:sh+'px',overflow:'hidden',background:'#fff'})}
+// shot layers
+const imgs=[];
+for(const id of ids){const s=shots[id];s.layer=$('div','abs',scr,{width:sw+'px',height:sh+'px',opacity:0,overflow:'hidden'});
+  // Screens are drawn into a viewport-sized canvas each seek (cheap and deterministic, even for very tall full-page captures).
+  s.img=new Image();s.img.src=root+`${cap}/assets/${id}.png`;imgs.push(s.img);
+  s.cv=$('canvas','abs',s.layer,{width:sw+'px',height:sh+'px'});s.cv.width=Math.round(sw);s.cv.height=Math.round(sh);s.ctx=s.cv.getContext('2d')}
+await Promise.all(imgs.map(i=>i.decode()));
+for(const id of ids){const s=shots[id];s.pageH=s.img.naturalHeight*VW/s.img.naturalWidth;s.maxScroll=Math.max(0,s.pageH-VH)}
+// cursor: finger dot on phones/bleed, arrow pointer in browsers
+const isArrow=frame==='browser';
+const cur=$('div','abs',drift,{width:0,height:0,opacity:0,zIndex:5});
+const ring=$('div','abs',cur,{width:90*u+'px',height:90*u+'px',left:-45*u+'px',top:-45*u+'px',borderRadius:'50%',border:`${3*u}px solid ${isArrow?'rgba(30,30,30,.5)':'rgba(255,255,255,.95)'}`,opacity:0,boxSizing:'border-box'});
+let dot;if(isArrow){dot=$('div','abs',cur,{left:-4*u+'px',top:-2*u+'px'});dot.innerHTML=`<svg width="${34*u}" height="${46*u}" viewBox="0 0 17 23"><path d="M1 1v17l4.6-4.3 3.1 7.3 3-1.3-3.1-7.1H15z" fill="#111" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>`;dot.style.filter=`drop-shadow(0 ${3*u}px ${6*u}px rgba(0,0,0,.35))`}
+else dot=$('div','abs',cur,{width:64*u+'px',height:64*u+'px',left:-32*u+'px',top:-32*u+'px',borderRadius:'50%',background:'rgba(255,255,255,.55)',border:`${3*u}px solid rgba(255,255,255,.95)`,boxShadow:`0 ${6*u}px ${18*u}px rgba(0,0,0,.28)`,boxSizing:'border-box'});
+// ---- timeline
+const tl=gsap.timeline({paused:true});const D=plan.duration;
+const EASE=plan.ease||'power2.inOut';
+const scrollTw={};ids.forEach(id=>scrollTw[id]=[]);
+const shotAt=t=>{let cur=null;for(const s of plan.steps)if(s.show&&s.at<=t+1e-6)cur=s.show;return cur};
+const scrollAt=(id,t)=>{let y=0;for(const w of scrollTw[id]){if(t>=w.at+w.d)y=w.to;else if(t>w.at){y=w.from+(w.to-w.from)*gsap.parseEase(w.ease)((t-w.at)/w.d);break}else break}return y};
+const boxOf=(id,name)=>{const b=shots[id].boxes[name];if(!b)throw new Error(`box "${name}" missing in shot "${id}"`);return b};
+const stagePt=(id,name,t,fx=.5,fy=.5)=>{const b=boxOf(id,name);return [sx+k*(b.x+b.width*fx),sy+k*(b.y+b.height*fy-scrollAt(id,t))]};
+const steps=[...plan.steps].sort((a,b)=>a.at-b.at);
+const cuts=[0],taps=[];let first=true;let camState={x:0,y:0,s:1};
+for(const s of steps){const d=s.d??0;const at=s.at;const ease=s.ease||EASE;
+  if(s.show){const sh=shots[s.show];
+    if(first){tl.set(sh.layer,{opacity:1},0);first=false;continue}
+    const prev=shotAt(at-1e-4);const pv=shots[prev];cuts.push(at);
+    const via=s.via||'fade';
+    if(via==='push'){tl.fromTo(sh.layer,{opacity:1,x:sw},{x:0,duration:d||.6,ease:'power3.inOut'},at);tl.to(pv.layer,{x:-sw*.28,duration:d||.6,ease:'power3.inOut'},at);tl.set(pv.layer,{opacity:0,x:0},at+(d||.6))}
+    else{tl.fromTo(sh.layer,{opacity:0},{opacity:1,duration:d||.35,ease:'power1.inOut'},at);tl.set(pv.layer,{opacity:0},at+(d||.35))}
+  }
+  if(s.scroll!==undefined){const id=shotAt(at);const sh=shots[id];
+    const from=scrollAt(id,at);let to=typeof s.scroll==='number'?s.scroll:(boxOf(id,s.scroll).y-(s.align??.3)*VH);to=Math.max(0,Math.min(sh.maxScroll,to));
+    scrollTw[id].push({at,d,from,to,ease})}
+  if(s.cursor){const id=shotAt(at+d);const [x,y]=stagePt(id,s.cursor,at+d,s.fx??.5,s.fy??.5);
+    if(!cur._shown){cur._shown=1;const [x0,y0]=s.from?[x+s.from[0]*u,y+s.from[1]*u]:[x+160*u,y+260*u];tl.set(cur,{x:x0,y:y0},0);tl.to(cur,{opacity:1,duration:.3,ease:'power1.out'},at)}
+    tl.to(cur,{x,y,duration:d,ease:s.ease||'power3.inOut'},at)}
+  if(s.tap){const id=shotAt(at);taps.push({at,id,box:s.tap});
+    tl.to(dot,{scale:.82,duration:.12,ease:'power2.in'},at).to(dot,{scale:1,duration:.3,ease:'back.out(3)'},at+.12);
+    tl.fromTo(ring,{scale:.4,opacity:.9},{scale:1.5,opacity:0,duration:.55,ease:'power2.out'},at)}
+  if(s.hideCursor)tl.to(cur,{opacity:0,duration:d||.3},at);
+  if(s.camera){const c=s.camera;let x=0,y=0,z=c.zoom??1;
+    if(c.box){const id=shotAt(at+d);const [cx,cy]=stagePt(id,c.box,at+d);x=W*(c.cx??.5)-z*cx;y=H*(c.cy??.5)-z*cy}
+    else if(z!==1){x=W/2*(1-z);y=H/2*(1-z)}
+    if(frame==='bleed'||c.clamp){x=Math.min(-z*sx,Math.max(W-z*(sx+sw),x));y=Math.min(-z*sy,Math.max(H-z*(sy+sh),y))}
+    tl.to(cam,{x,y,scale:z,duration:d,ease},at);camState={x,y,s:z}}
+}
+// continuous slow drift so there is never a dead hold
+tl.fromTo(drift,{y:10*u,rotation:frame==='phone'?-.6:0,scale:1},{y:-10*u,rotation:frame==='phone'?.6:0,scale:1.025,duration:D,ease:'sine.inOut',transformOrigin:'50% 50%'},0);
+tl.fromTo(bg,{scale:1.06},{scale:1,duration:D,ease:'sine.inOut',transformOrigin:'50% 40%'},0);
+tl.set({}, {}, D);
+const draw=t=>{for(const id of ids){const s=shots[id];if(+getComputedStyle(s.layer).opacity<=0)continue;const r=s.img.naturalWidth/VW;
+  s.ctx.imageSmoothingQuality='high';s.ctx.clearRect(0,0,s.cv.width,s.cv.height);s.ctx.drawImage(s.img,0,scrollAt(id,t)*r,s.img.naturalWidth,VH*r,0,0,s.cv.width,s.cv.height)}};
+window.seek=t=>{tl.seek(t,false);draw(t)};
+// QA: images loaded, device inside frame, no text nodes, and every tap lands inside its real element box
+window.qaCheck=()=>{const issues=[];
+  if(imgs.some(i=>!i.naturalWidth))issues.push('screen image failed to load');
+  if(st.innerText.trim())issues.push('on-screen text found: '+st.innerText.trim().slice(0,40));
+  const t=tl.time();const tap=taps.find(x=>Math.abs(x.at-t)<1e-3);
+  if(tap){const im=shots[tap.id].layer.getBoundingClientRect();const sc=im.width/VW;const b=boxOf(tap.id,tap.box);const y0=scrollAt(tap.id,t);
+    const r={l:im.left+b.x*sc,t:im.top+(b.y-y0)*sc,r:im.left+(b.x+b.width)*sc,b:im.top+(b.y+b.height-y0)*sc};const c=cur.getBoundingClientRect();
+    if(c.left<r.l||c.left>r.r||c.top<r.t||c.top>r.b)issues.push(`tap @${t.toFixed(2)}s misses "${tap.box}" (${c.left.toFixed(0)},${c.top.toFixed(0)}) vs [${r.l.toFixed(0)},${r.t.toFixed(0)},${r.r.toFixed(0)},${r.b.toFixed(0)}]`);
+    if(r.l<0||r.r>W||r.t<0||r.b>H)issues.push(`tap target "${tap.box}" outside frame`)}
+  if(frame!=='bleed'){const d=(dev||scr).getBoundingClientRect();if(d.left<-2||d.right>W+2||d.top<-2||d.bottom>H+2){if(camState.s<=1.001)issues.push('device outside frame')}}
+  return issues};
+const qaTimes=[...new Set([...taps.map(x=>x.at),...cuts.slice(1).map(c=>c+.7),D-.05].map(x=>+Math.min(D-.02,x).toFixed(3)))].sort((a,b)=>a-b);
+window.meta={W,H,theme:DARK?'dark':'light',post:{glowPass:false,noise:0},audio:plan.audio||'none',copy:[],duration:D,cuts,qaTimes,fps:plan.fps||60,outFps:plan.outFps||30,output:plan.output,
+  scenes:qaTimes.map(t=>taps.find(x=>Math.abs(x.at-t)<1e-3)?'tap-'+taps.find(x=>Math.abs(x.at-t)<1e-3).box:shotAt(t))};
+window.ready=true;
+</script></body></html>

@@ -1,0 +1,78 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Chat order</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf);font-weight:100 900}
+html,body{margin:0;overflow:hidden;background:#000}#st{position:relative;overflow:hidden;font-family:Inter,system-ui,sans-serif}.abs{position:absolute;left:0;top:0}
+.bub{position:absolute;max-width:78%;padding:14px 16px 26px;border-radius:14px;font-size:27px;line-height:1.38;color:#111b21;box-shadow:0 1px 1.5px rgba(0,0,0,.13);white-space:pre-wrap}
+.out{right:22px;background:#d9fdd3;border-top-right-radius:4px}.in{left:22px;background:#fff;border-top-left-radius:4px}
+.meta{position:absolute;right:12px;bottom:6px;font-size:18px;color:#667781;display:flex;gap:5px;align-items:center}</style>
+<script src="lib/gsap.min.js"></script></head><body><div id="st"></div>
+<script type="module">
+// Code-animated recreation of an order arriving in a WhatsApp-like chat (not a capture of WhatsApp; no third-party logos).
+// Order lines/prices come from the plan, which must use real captured catalog data.
+const q=new URLSearchParams(location.search);const root='../../';
+const plan=await (await fetch(root+q.get('plan'))).json();await document.fonts.load('27px Inter');
+const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[plan.format];const u=Math.min(W,H)/1080;
+const st=document.getElementById('st');Object.assign(st.style,{width:W+'px',height:H+'px'});
+const $=(tag,cls,parent,style,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;Object.assign(e.style,style||{});if(html!==undefined)e.innerHTML=html;(parent||st).appendChild(e);return e};
+const bg=$('div','abs',st,{width:W+'px',height:H+'px',background:'radial-gradient(120% 90% at 50% 25%,#fbfaf8 0%,#eeebe6 55%,#e2ded7 100%)'});
+const cam=$('div','abs',st,{width:W+'px',height:H+'px',transformOrigin:'0 0'});const drift=$('div','abs',cam,{width:W+'px',height:H+'px'});
+// phone: screen designed at 390x844 CSS-like units scaled to fit
+const VW=540,VH=1168;const k=Math.min(0.62*W/VW,0.86*H/VH);const sw=VW*k,sh=VH*k,sx=(W-sw)/2,sy=(H-sh)/2,bz=16*u;
+$('div','abs',drift,{left:sx-bz+'px',top:sy-bz+'px',width:sw+2*bz+'px',height:sh+2*bz+'px',borderRadius:62*u+'px',background:'#0c0c0e',boxShadow:`0 ${60*u}px ${120*u}px rgba(0,0,0,.22),0 ${10*u}px ${30*u}px rgba(0,0,0,.18),inset 0 0 0 ${2*u}px #2a2a2e`});
+const scr=$('div','abs',drift,{left:sx+'px',top:sy+'px',width:VW+'px',height:VH+'px',transform:`scale(${k})`,transformOrigin:'0 0',borderRadius:48/k*u+'px',overflow:'hidden',background:'#efeae2'});
+// wallpaper doodle dots (procedural, deterministic)
+const pat=$('div','abs',scr,{width:VW+'px',height:VH+'px',opacity:.5,backgroundImage:'radial-gradient(circle at 10px 10px,rgba(0,0,0,.05) 2px,transparent 2.5px)',backgroundSize:'34px 34px'});
+const ch=plan.chat;
+// status bar + header
+$('div','abs',scr,{width:VW+'px',height:'150px',background:'#008069'});
+$('div','abs',scr,{left:'34px',top:'22px',color:'#fff',fontSize:'22px',fontWeight:600},ch.time);
+$('div','abs',scr,{left:'20px',top:'84px',color:'#fff',fontSize:'34px',lineHeight:'34px'},'&#8592;');
+$('div','abs',scr,{left:'66px',top:'72px',width:'58px',height:'58px',borderRadius:'50%',background:'#dfe5e7',color:'#54656f',fontSize:'22px',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'},ch.initials);
+$('div','abs',scr,{left:'138px',top:'72px',color:'#fff',fontSize:'27px',fontWeight:600},ch.name);
+$('div','abs',scr,{left:'138px',top:'106px',color:'rgba(255,255,255,.85)',fontSize:'20px'},ch.subtitle);
+// composer
+const comp=$('div','abs',scr,{left:'14px',top:VH-96+'px',width:VW-110+'px',height:'72px',borderRadius:'36px',background:'#fff',boxShadow:'0 1px 1px rgba(0,0,0,.08)'});
+const draft=$('div','abs',comp,{left:'26px',top:'20px',width:VW-170+'px',fontSize:'24px',color:'#111b21',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},ch.draftPreview);
+const send=$('div','abs',scr,{left:VW-86+'px',top:VH-96+'px',width:'72px',height:'72px',borderRadius:'50%',background:'#00a884',display:'flex',alignItems:'center',justifyContent:'center'},'<svg width="34" height="34" viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5l.01 6.6L15 12 3.01 13.9z" fill="#fff"/></svg>');
+// messages
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*(.+?)\*/g,'<b>$1</b>');
+const ticks=c=>`<svg width="26" height="16" viewBox="0 0 26 16"><path d="M1 8.5 5.5 13 14 3.5" fill="none" stroke="${c}" stroke-width="2"/><path d="M9 11.5 10.5 13 19 3.5" fill="none" stroke="${c}" stroke-width="2"/></svg>`;
+const outB=$('div','bub out',scr,{top:'0px',opacity:0},esc(ch.order.join('\n'))+`<span class="meta">${ch.sentAt} <span id="tk">${ticks('#8696a0')}</span></span>`);
+const blue=$('span','',outB.querySelector('.meta'),{position:'absolute',right:'0px',bottom:'0px',opacity:0},ticks('#53bdeb'));
+const typing=$('div','bub in',scr,{top:'0px',opacity:0,padding:'18px 22px',display:'flex',gap:'8px'});const dots=[0,1,2].map(()=>$('div','',typing,{width:'12px',height:'12px',borderRadius:'50%',background:'#8696a0'}));
+const inB=$('div','bub in',scr,{top:'0px',opacity:0},esc(ch.reply)+`<span class="meta">${ch.replyAt}</span>`);
+await new Promise(r=>requestAnimationFrame(r));
+const bottom=VH-120;const oh=outB.offsetHeight,ih=inB.offsetHeight,th=typing.offsetHeight;
+const yOut=bottom-oh, yOutAfter=bottom-oh-ih-18;
+gsap.set(outB,{top:yOut});gsap.set(typing,{top:bottom-th});gsap.set(inB,{top:bottom-ih});
+// finger
+const cur=$('div','abs',drift,{width:0,height:0,opacity:0,zIndex:5});
+const dot=$('div','abs',cur,{width:64*u+'px',height:64*u+'px',left:-32*u+'px',top:-32*u+'px',borderRadius:'50%',background:'rgba(255,255,255,.55)',border:`${3*u}px solid rgba(255,255,255,.95)`,boxShadow:`0 ${6*u}px ${18*u}px rgba(0,0,0,.28)`,boxSizing:'border-box'});
+const ring=$('div','abs',cur,{width:90*u+'px',height:90*u+'px',left:-45*u+'px',top:-45*u+'px',borderRadius:'50%',border:`${3*u}px solid rgba(255,255,255,.95)`,opacity:0,boxSizing:'border-box'});
+const sendX=sx+(VW-50)*k,sendY=sy+(VH-60)*k;
+// ---- timeline
+const tl=gsap.timeline({paused:true});const D=plan.duration;
+tl.fromTo(drift,{y:10*u,rotation:-.6,scale:1},{y:-10*u,rotation:.6,scale:1.025,duration:D,ease:'sine.inOut',transformOrigin:'50% 50%'},0);
+tl.fromTo(bg,{scale:1.06},{scale:1,duration:D,ease:'sine.inOut',transformOrigin:'50% 40%'},0);
+tl.set(cur,{x:sendX+160*u,y:sendY+240*u},0).to(cur,{opacity:1,duration:.3},0.3).to(cur,{x:sendX,y:sendY,duration:1,ease:'power3.inOut'},0.3);
+const T=1.4;tl.to(dot,{scale:.82,duration:.12,ease:'power2.in'},T).to(dot,{scale:1,duration:.3,ease:'back.out(3)'},T+.12);
+tl.fromTo(ring,{scale:.4,opacity:.9},{scale:1.5,opacity:0,duration:.55,ease:'power2.out'},T);tl.to(send,{scale:.9,duration:.1,yoyo:true,repeat:1},T);
+tl.to(draft,{opacity:0,duration:.15},T+.05);
+tl.fromTo(outB,{opacity:0,y:90,scale:.96,transformOrigin:'100% 100%'},{opacity:1,y:0,scale:1,duration:.55,ease:'back.out(1.4)'},T+.08);
+tl.to(cur,{opacity:0,y:'+=80',duration:.5,ease:'power2.in'},T+.5);
+tl.to(blue,{opacity:1,duration:.25},3.0);
+tl.fromTo(typing,{opacity:0,y:30},{opacity:1,y:0,duration:.35,ease:'power2.out'},3.4);
+dots.forEach((d,i)=>tl.fromTo(d,{y:0},{y:-8,duration:.22,yoyo:true,repeat:5,ease:'sine.inOut'},3.5+i*.12));
+tl.to(outB,{top:yOutAfter,duration:.45,ease:'power3.inOut'},4.95);tl.to(typing,{opacity:0,duration:.15},4.95);
+tl.fromTo(inB,{opacity:0,y:40,scale:.96,transformOrigin:'0% 100%'},{opacity:1,y:0,scale:1,duration:.5,ease:'back.out(1.4)'},5.05);
+// camera: slow push toward the conversation, gentle settle
+const focus=(z,yy)=>({scale:z,x:W/2*(1-z),y:H*.5-z*(sy+yy*k)});
+const P=plan.format==='9x16';tl.fromTo(cam,focus(1,VH/2),{...focus(P?1.1:1.06,VH*(P?.6:.53)),duration:3.2,ease:'power2.inOut'},0.2);
+tl.to(cam,{...focus(P?1.06:1.04,VH*(P?.56:.52)),duration:D-3.6,ease:'sine.inOut'},3.4);
+tl.set({}, {}, D);
+window.seek=t=>{tl.seek(t,false)};
+window.qaCheck=()=>{const issues=[];const s=scr.getBoundingClientRect();
+  for(const b of [outB,inB]){if(+getComputedStyle(b).opacity<.05)continue;const r=b.getBoundingClientRect();if(r.left<s.left-1||r.right>s.right+1||r.top<s.top+150*k-1)issues.push('bubble outside chat area');if(b.scrollWidth>b.clientWidth+1)issues.push('bubble text overflows')}
+  const r=outB.getBoundingClientRect();if(+getComputedStyle(outB).opacity>.5&&(r.top<0||r.bottom>H))issues.push('order bubble outside frame');return issues};
+window.meta={W,H,theme:'light',post:{glowPass:false,noise:0},audio:'none',copy:[],duration:D,cuts:[0],qaTimes:[2.2,4.2,D-.05],fps:plan.fps||60,outFps:plan.outFps||30,output:plan.output,scenes:['sent','read','reply']};
+window.ready=true;
+</script></body></html>

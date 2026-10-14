@@ -24,7 +24,7 @@ No visual style is the "base": the look always comes from the STYLE block (`styl
 The copy comes from `brands/<brand>/messaging.md` (with source citations). Do not invent offers, prices or promotions. Do not promise anything the brand does not offer (e.g. "gratis" if there is no free plan).
 
 ## [STYLE] — swappable
-`"style": "<id>"` in the plan → `styles/<id>.json` (see `styles/README.md`). Available styles: dark-glow, light-corporate, kinetic-type, editorial-grid, playful-sticker.
+`"style": "<id>"` in the plan → `styles/<id>.json` (see `styles/README.md`). Available styles: dark-glow, light-corporate, kinetic-type, editorial-grid (playful-sticker is deprecated, not allowed).
 To create a style from a reference video, see `references/README.md`.
 
 ## [STORY] — swappable
@@ -32,7 +32,7 @@ Scenes in `plans/<piece>.json`:
 - Hook.
 - 2–4 product beats (device + kicker + title with a *keyword*).
 - 1–3 short phrases.
-- Outro with the brand's real CTA.
+- End on the last content beat (CTA as a phrase if needed). No intro/outro: bumpers are separate assets.
 Copy in neutral Latin American Spanish (tú), short sentences, one idea per scene.
 
 ## [FORMAT] — swappable
@@ -46,3 +46,8 @@ Commands (from the repo root, after `bun run setup`):
 - `bun run render -- plans/x.json --qa-only`
 - `bun run render -- plans/x.json`
 - `bun run bumper -- brands/selltly/brand.json projects/bumpers-selltly intro:A:9x16:dark`
+
+## Delivery rules (Jose, 2026-10-14)
+- No se genera voice over/TTS; la locución la graba Jose. Do not synthesize or mux any voice. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
+- Videos are delivered without intro or outro. Bumpers (`bun run bumper`) are separate assets; Jose adds them in post. Do not concatenate bumpers or use an `outro` scene at the end of a piece; end cleanly on the last content scene with the music faded out.
+- Style `playful-sticker` is deprecated/not allowed.

@@ -1,0 +1,18 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-inserto-error-1",
+  "style": "dark-glow",
+  "bpm": 100,
+  "scenes": [
+    {
+      "type": "hook",
+      "beats": 8,
+      "copy": "3 errores al vender por *WhatsApp*."
+    }
+  ]
+}

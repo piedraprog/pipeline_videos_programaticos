@@ -1,0 +1,23 @@
+{
+  "engine": "gsap",
+  "brand": "brands/selltly/brand.json",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "seed": 20261014,
+  "output": "projects/p2-inserto-beta-founder",
+  "style": "editorial-grid",
+  "bpm": 100,
+  "scenes": [
+    {
+      "type": "phrase",
+      "beats": 4.5,
+      "copy": "Plan Founder: *USD 30 al mes*"
+    },
+    {
+      "type": "phrase",
+      "beats": 4.5,
+      "copy": "Solo *20 cupos*"
+    }
+  ]
+}
