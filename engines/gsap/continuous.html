@@ -1,0 +1,208 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Continuous single-take template</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow:hidden;background:#000}
+#stage{position:relative;overflow:hidden}
+.abs{position:absolute}
+.sc{position:absolute;left:0;top:0;width:100%;height:100%;visibility:hidden}
+.t{position:absolute;white-space:nowrap}
+.ico{position:absolute;border-radius:28%;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(17,17,17,.14),0 0 0 1px rgba(17,17,17,.06);background:#fff}
+.toast{position:absolute;display:flex;align-items:center;gap:18px;background:#fff;border-radius:26px;padding:22px 30px;box-shadow:0 22px 60px rgba(17,17,17,.16),0 0 0 1px rgba(17,17,17,.05);white-space:nowrap}
+.dot{border-radius:50%;display:inline-block}
+.scr{position:absolute;overflow:hidden;background:#fafaf9}
+.scr img{position:absolute;left:0;top:0;width:100%}
+</style></head><body><div id="stage"></div>
+<script src="lib/gsap.min.js"></script>
+<script>
+const q=new URLSearchParams(location.search);
+const $=(tag,cls,parent,style,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(style)Object.assign(e.style,style);if(txt!=null)e.textContent=txt;if(parent)parent.appendChild(e);return e};
+async function main(){
+const root='../../';
+const plan=await (await fetch(root+q.get('plan'))).json();
+const brand=await (await fetch(root+plan.brand)).json();
+const STY=await (await fetch(root+'styles/'+plan.style+'.json')).json();
+if(STY.deprecated)throw new Error('Style '+plan.style+' is deprecated');
+const W=1080,H=1920,safe={l:W*.08,r:W*.92,t:H*.09,b:H*.88};
+const C=STY.colors, P=brand.palette, E=STY.motion, S=plan.story;
+const nfmt=v=>(S.number.prefix||'')+v.toLocaleString('es-VE',{minimumFractionDigits:S.number.decimals||0,maximumFractionDigits:S.number.decimals||0});
+document.head.appendChild(Object.assign(document.createElement('style'),{textContent:`@font-face{font-family:Inter;src:url(${root}engines/gsap/fonts/Inter.ttf) format("truetype");font-weight:100 900}`}));
+await document.fonts.load('800 100px Inter');await document.fonts.load('500 100px Inter');
+const st=document.getElementById('stage');Object.assign(st.style,{width:W+'px',height:H+'px',background:C.bg,color:C.text,fontFamily:'Inter'});
+document.body.style.width=W+'px';document.body.style.height=H+'px';
+// faint grid
+const grid=$('div','abs',st,{inset:0,backgroundImage:`linear-gradient(${C.grid} 1px,transparent 1px),linear-gradient(90deg,${C.grid} 1px,transparent 1px)`,backgroundSize:'72px 72px',backgroundPosition:'36px 36px'});
+const dark=$('div','abs',st,{inset:0,background:C.dark,opacity:0});
+const world=$('div','abs',st,{inset:0});
+const tl=gsap.timeline({paused:true,defaults:{ease:E.enter}});
+const textEls=[],cuts=[],qaTimes=[],names=[],hovers=[],blinkers=[];let counter=null;
+const T=(parent,txt,o)=>{const e=$('div','t',parent,Object.assign({fontWeight:800,letterSpacing:'-.04em',color:C.text},o.style||{}),txt);let fs=o.size;e.style.fontSize=fs+'px';const maxW=(o.maxW||(safe.r-safe.l))-4;while(e.offsetWidth>maxW&&fs>12){fs*=.96;e.style.fontSize=fs+'px'}
+  const w=e.offsetWidth;e.style.left=(o.x??(W/2-w/2))+'px';e.style.top=o.y+'px';if(o.qa!==false)textEls.push(e);return e};
+const show=(el,a,b)=>{tl.set(el,{visibility:'visible'},a);if(b!=null)tl.set(el,{visibility:'hidden'},b)};
+const img=(parent,src,style)=>{const i=$('img','',parent,style);i.src=root+src;return i};
+// icon glyphs (generic, no third-party logos)
+const glyph={
+ pdf:`<svg viewBox="0 0 48 48" width="62%"><path d="M12 4h17l9 9v31H12z" fill="${P.crimson}"/><path d="M29 4v9h9" fill="#fff" opacity=".5"/><text x="25" y="35" font-family="Inter" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">PDF</text></svg>`,
+ chat:`<svg viewBox="0 0 48 48" width="62%"><path d="M24 6C13 6 5 13 5 22c0 5 2.6 9.3 6.8 12.2L10 43l9.4-5.3c1.5.3 3 .5 4.6.5 11 0 19-7 19-16S35 6 24 6z" fill="${C.live}"/><circle cx="16" cy="22" r="2.6" fill="#fff"/><circle cx="24" cy="22" r="2.6" fill="#fff"/><circle cx="32" cy="22" r="2.6" fill="#fff"/></svg>`,
+ notes:`<svg viewBox="0 0 48 48" width="62%"><rect x="9" y="6" width="30" height="36" rx="4" fill="${P.yellow}"/><path d="M15 16h18M15 23h18M15 30h12" stroke="#111" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+ users:`<svg viewBox="0 0 48 48" width="62%"><circle cx="24" cy="17" r="8" fill="${P.wine}"/><path d="M9 41c1-9 7-14 15-14s14 5 15 14z" fill="${P.wine}"/></svg>`,
+ tag:`<svg viewBox="0 0 48 48" width="62%"><path d="M6 24 24 6h17v17L23 41z" fill="${P.orange}"/><circle cx="34" cy="14" r="3.4" fill="#fff"/></svg>`,
+ toggle:`<svg viewBox="0 0 48 48" width="62%"><rect x="5" y="15" width="38" height="20" rx="10" fill="${C.live}"/><circle cx="33" cy="25" r="7.5" fill="#fff"/></svg>`,
+ bag:`<svg viewBox="0 0 48 48" width="62%"><path d="M10 15h28l-2.5 27h-23z" fill="#111"/><path d="M17 17v-4a7 7 0 0 1 14 0v4" fill="none" stroke="#111" stroke-width="3"/></svg>`};
+const icon=(parent,g,size)=>{const o=$('div','abs',parent,{width:size+'px',height:size+'px'});const h=$('div','abs',o,{inset:0});const i=$('div','ico',h,{inset:0});i.innerHTML=glyph[g];hovers.push({el:h,ph:hovers.length*1.3});return o};
+
+// ===== Dynamic Island (global)
+const isl=$('div','abs',st,{left:W/2+'px',top:safe.t+12+'px',height:84+'px',zIndex:60,transform:'translateX(-50%)'});
+const islIn=$('div','abs',isl,{left:0,top:0,height:'84px',display:'flex',alignItems:'center',gap:'16px',padding:'0 30px 0 18px',background:'#111',color:'#fff',borderRadius:'42px',transform:'translateX(-50%)',whiteSpace:'nowrap',boxShadow:'0 14px 40px rgba(0,0,0,.25)'});
+const islIco=$('div','',islIn,{width:'52px',height:'52px',borderRadius:'50%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center'});const islIcoImg=img(islIco,brand.logo.icon.onDark,{width:'34px'});
+const islTxt=$('div','',islIn,{fontSize:'28px',fontWeight:600,letterSpacing:'-.01em'});
+const live=$('div','',islIn,{display:'flex',alignItems:'center',gap:'8px',fontSize:'22px',fontWeight:600,color:'#9ca3af',marginLeft:'8px'});const ld=$('span','dot',live,{width:'14px',height:'14px',background:C.live});$('span','',live,null,'En vivo');blinkers.push(ld);
+textEls.push(islIn);const islTexts=[];
+const island=(txt,at)=>{islTexts.push([at,txt]);tl.fromTo(islIn,{y:0,scale:1},{y:-14,scale:1.06,duration:.14,ease:'power2.out',immediateRender:false},at-.14).to(islIn,{y:0,scale:1,duration:.55,ease:E.overshoot},at)};
+tl.fromTo(isl,{y:-160,opacity:0},{y:0,opacity:1,duration:.8,ease:E.overshoot},.15);
+const bottom=(parent,txt,at,end)=>{const e=T(parent,txt,{size:52,y:safe.b-90,style:{fontWeight:700,letterSpacing:'-.03em'}});tl.fromTo(e,{y:40,opacity:0,filter:'blur(8px)'},{y:0,opacity:1,filter:'blur(0px)',duration:.7,immediateRender:true},at);if(end)tl.to(e,{opacity:0,y:-20,duration:.35,ease:'power2.in'},end-.35);return e};
+const scene=(name,a,b)=>{const el=$('div','sc',world);show(el,a,b);cuts.push(a);names.push(name);return el};
+let t=0;
+
+// ===== 1 Problem (lines swap on beat, inline icons pop out and float)
+const A1=0,D1=S.problem.duration;const s1=scene('problem',A1,A1+D1+.6);
+const lines=S.problem.lines, step=(D1-1.2)/lines.length;const floatPos=[[170,560],[790,700],[260,1240]];const floaters=[];
+lines.forEach((ln,i)=>{const at=A1+.3+i*step;const L=T(s1,ln.text,{size:84,y:H/2-60,maxW:ln.icon?(safe.r-safe.l-120):undefined});let ic=null;
+  if(ln.icon){L.style.paddingRight='120px';const w=L.offsetWidth;L.style.left=W/2-w/2+'px';ic=icon(s1,ln.icon,96);ic.style.left=W/2+w/2-104+'px';ic.style.top=H/2-60+4+'px';floaters.push(ic);
+    tl.fromTo(ic,{scale:0},{scale:1,duration:.5,ease:E.overshoot,immediateRender:true},at+.15);
+    const [fx,fy]=floatPos[floaters.length-1];tl.to(ic,{left:fx,top:fy,scale:1.45,duration:.9,ease:E.camera},at+step-.25)}
+  tl.fromTo(L,{yPercent:60,opacity:0,filter:'blur(10px)'},{yPercent:0,opacity:1,filter:'blur(0px)',duration:.5,ease:E.enter,immediateRender:true},at);
+  if(i<lines.length-1)tl.to(L,{yPercent:-60,opacity:0,filter:'blur(10px)',duration:.32,ease:'power3.in'},at+step-.3);
+  else tl.to(L,{scale:.9,opacity:0,duration:.45,ease:'power3.in'},A1+D1-.2);
+  if(i===0)qaTimes.push(at+.9)});
+island(S.problem.island,A1+.9);
+
+// ===== 2 Hub
+const A2=A1+D1,D2=S.hub.duration;const s2=scene('hub',A2-.25,A2+D2+.5);
+const CX=W/2,CY=H/2-30,Rr=330;
+const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width',W);svg.setAttribute('height',H);Object.assign(svg.style,{position:'absolute',left:0,top:0});s2.appendChild(svg);
+const hub=$('div','abs',s2,{left:CX-110+'px',top:CY-110+'px',width:'220px',height:'220px',borderRadius:'30%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 30px 80px rgba(144,20,64,.18),0 0 0 1px rgba(17,17,17,.06)'});
+const hubImg=img(hub,brand.logo.icon.onLight,{width:'150px',position:'relative'});
+const nodes=S.hub.nodes;const nodeEls=[];
+nodes.forEach((n,i)=>{const ang=-Math.PI/2+i*Math.PI*2/nodes.length;const x=CX+Rr*Math.cos(ang),y=CY+Rr*Math.sin(ang);
+  const ln=document.createElementNS('http://www.w3.org/2000/svg','line');Object.entries({x1:CX,y1:CY,x2:x,y2:y,stroke:'#111','stroke-opacity':.22,'stroke-width':3,'stroke-dasharray':Rr,'stroke-dashoffset':Rr}).forEach(([k,v])=>ln.setAttribute(k,v));svg.appendChild(ln);
+  const ic=icon(s2,n.icon,120);ic.style.left=x-60+'px';ic.style.top=y-60+'px';
+  const lab=T(s2,n.label,{size:28,y:y+72,style:{fontWeight:600,letterSpacing:'-.01em',color:'#444'}});lab.style.left=x-lab.offsetWidth/2+'px';
+  const at=A2+.25+i*.12;
+  // the first three come from the floating problem icons' area (continuity), the rest pop in
+  tl.fromTo(ic,{x:(i<3?(floatPos[i][0]+70-x):0),y:(i<3?(floatPos[i][1]+70-y):0),scale:i<3?1.2:0},{x:0,y:0,scale:1,duration:.75,ease:E.overshoot,immediateRender:true},at);
+  tl.to(ln,{attr:{'stroke-dashoffset':0},duration:.6,ease:'power2.out'},at+.45);
+  tl.fromTo(lab,{opacity:0,y:12},{opacity:1,y:0,duration:.4,immediateRender:true},at+.6);nodeEls.push(ic,lab)});
+floaters.forEach(f=>tl.to(f,{opacity:0,duration:.25},A2+.25));
+tl.fromTo(hub,{scale:0,rotation:-30},{scale:1,rotation:0,duration:.8,ease:E.overshoot,immediateRender:true},A2+.1);
+const top2=T(s2,S.hub.kicker,{size:26,y:safe.t+150,style:{fontWeight:700,letterSpacing:'.22em',color:P.crimson}});tl.fromTo(top2,{opacity:0,y:-14},{opacity:1,y:0,duration:.5,immediateRender:true},A2+.5);
+bottom(s2,S.hub.bottom,A2+1.2,A2+D2-.1);island(S.hub.island,A2+.6);qaTimes.push(A2+2.6);
+// zoom into the center logo (Z push)
+tl.to([svg,...nodeEls,top2],{opacity:0,duration:.45,ease:'power2.in'},A2+D2-.55);
+tl.to(hub,{scale:2.4,duration:.75,ease:E.camera},A2+D2-.6);
+
+// ===== 3 Store (logo morphs into the device)
+const A3=A2+D2,D3=S.store.duration;const s3=scene('store',A3-.3,A3+D3+.6);
+const k=1.42,pw=390*k,ph=844*k,px=W/2-pw/2,py=safe.t+130;
+const phone=$('div','abs',s3,{left:px-14+'px',top:py-14+'px',width:pw+28+'px',height:ph+28+'px',borderRadius:'70px',background:'#111',boxShadow:'0 40px 100px rgba(17,17,17,.25)',transformOrigin:'50% 40%'});
+const scr=$('div','scr',phone,{left:'14px',top:'14px',width:pw+'px',height:ph+'px',borderRadius:'56px'});
+const shotA=img(scr,S.store.product,{});const shotB=img(scr,S.store.added,{opacity:0});
+const ring=$('div','abs',s3,{width:'110px',height:'110px',borderRadius:'50%',border:`5px solid ${P.crimson}`,background:P.crimson+'22',opacity:0});
+const tap=(x,y,at)=>{const X=px+x*k,Y=py+y*k;tl.set(ring,{left:X-55,top:Y-55},at-.01);tl.fromTo(ring,{scale:.2,opacity:1},{scale:1.6,opacity:0,duration:.6,ease:'expo.out',immediateRender:false},at)};
+tl.fromTo(phone,{scale:.12,borderRadius:'200px',opacity:0},{scale:1,borderRadius:'70px',opacity:1,duration:.9,ease:E.camera,immediateRender:true},A3-.3);
+tl.to(hub,{opacity:0,duration:.3},A3-.15);
+tap(S.store.tapAdd.x,S.store.tapAdd.y,A3+1.4);tl.to(shotB,{opacity:1,duration:.2},A3+1.5);
+// simulated order button (Selltly flow: the order goes out as a WhatsApp message)
+const btn=$('div','abs',s3,{left:px+30+'px',top:py+ph-130+'px',width:pw-60+'px',height:'92px',borderRadius:'46px',background:'#111',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'30px',fontWeight:700,opacity:0},S.store.button);textEls.push(btn);
+tl.fromTo(btn,{y:60,opacity:0},{y:0,opacity:1,duration:.5,ease:E.overshoot,immediateRender:true},A3+2.3);
+tl.to(btn,{boxShadow:`0 0 0 10px ${P.crimson}55`,scale:1.04,duration:.3,ease:'power2.out'},A3+2.9).to(btn,{scale:.95,duration:.1},A3+3.25).to(btn,{scale:1,duration:.4,ease:E.overshoot},A3+3.35);
+tap((W/2-px)/k,(py+ph-84-py)/k,A3+3.3);
+const toasts=S.store.toasts.map((tx,i)=>{const e=$('div','toast',s3,{left:W/2+'px',top:py+250+i*118+'px',zIndex:5});const d=$('span','dot',e,{width:'18px',height:'18px',background:i===0?C.live:P.orange});$('span','',e,{fontSize:'30px',fontWeight:700,letterSpacing:'-.02em'},tx);
+  textEls.push(e);e.style.left=W/2-e.offsetWidth/2+'px';tl.fromTo(e,{y:-30,opacity:0,scale:.85},{y:0,opacity:1,scale:1,duration:.55,ease:E.overshoot,immediateRender:true},A3+3.5+i*.28);return e});
+tl.to(phone,{opacity:.35,filter:'blur(6px)',duration:.6},A3+3.5);
+bottom(s3,S.store.bottom,A3+.8,A3+D3-.1);island(S.store.island,A3+.4);island(S.store.island2,A3+3.5);qaTimes.push(A3+4.6);
+tl.to(toasts.slice(1),{opacity:0,y:30,duration:.35,ease:'power2.in'},A3+D3-.6);tl.to(phone,{opacity:0,duration:.4},A3+D3-.5);
+// zoom into the first toast -> it becomes the dark scene
+tl.to(toasts[0],{scale:9,opacity:0,backgroundColor:C.dark,duration:.8,ease:E.camera},A3+D3-.55);
+tl.to(dark,{opacity:1,duration:.5,ease:'power2.inOut'},A3+D3-.35);
+
+// ===== 4 Dark chat (generic messaging UI)
+const A4=A3+D3,D4=S.chat.duration;const s4=scene('chat',A4-.2,A4+D4+.5);
+const cw=860,cx0=W/2-cw/2,cy0=safe.t+150;
+const head=$('div','abs',s4,{left:cx0+'px',top:cy0+'px',width:cw+'px',height:'110px',borderRadius:'28px',background:'#1c1c1e',display:'flex',alignItems:'center',gap:'20px',padding:'0 28px'});
+const av=$('div','',head,{width:'66px',height:'66px',borderRadius:'50%',background:P.yellow,color:'#111',fontWeight:800,fontSize:'26px',display:'flex',alignItems:'center',justifyContent:'center'},S.chat.initials);
+const hn=$('div','',head,{color:'#fff',fontSize:'32px',fontWeight:700},S.chat.name);textEls.push(hn);
+const bub=$('div','abs',s4,{left:cx0+'px',top:cy0+150+'px',width:'640px',borderRadius:'30px',background:'#26262a',color:'#f2f2f2',padding:'30px 34px',fontSize:'30px',lineHeight:1.45,border:'3px solid transparent'});
+S.chat.lines.forEach(l=>{const d=$('div','',bub,{fontWeight:l.startsWith('*')?800:500,minHeight:'.6em',whiteSpace:'pre'},l.replace(/\*/g,''))});textEls.push(bub);
+const chk=$('div','abs',s4,{left:cx0+500+'px',top:cy0+130+'px',height:'64px',padding:'0 26px',borderRadius:'32px',background:C.live,color:'#fff',fontSize:'28px',fontWeight:800,display:'flex',alignItems:'center',opacity:0,whiteSpace:'nowrap'},'✓ '+S.chat.done);textEls.push(chk);
+const ring4=$('div','abs',s4,{width:'110px',height:'110px',borderRadius:'50%',border:'5px solid #fff',opacity:0,left:cx0+320-55+'px',top:cy0+420+'px'});
+tl.fromTo(head,{y:-40,opacity:0},{y:0,opacity:1,duration:.6,immediateRender:true},A4);
+tl.fromTo(bub,{scale:.6,opacity:0,y:60},{scale:1,opacity:1,y:0,duration:.7,ease:E.overshoot,immediateRender:true},A4+.45);
+tl.fromTo(ring4,{scale:.2,opacity:1},{scale:1.6,opacity:0,duration:.6,ease:'expo.out',immediateRender:true},A4+2.2);
+tl.to(bub,{borderColor:C.live,background:'#163322',duration:.35},A4+2.25);
+tl.fromTo(chk,{scale:0,opacity:0},{scale:1,opacity:1,duration:.5,ease:E.overshoot,immediateRender:true},A4+2.35);
+tl.to([bub,chk],{x:-900,opacity:0,duration:.6,ease:'power3.in'},A4+3.6);
+const b4=bottom(s4,S.chat.bottom,A4+.9,A4+D4-.1);b4.style.color='#fff';
+island(S.chat.island,A4+.5);island(S.chat.island2,A4+2.3);qaTimes.push(A4+3);
+tl.to(head,{opacity:0,y:-30,duration:.4,ease:'power2.in'},A4+D4-.5);
+tl.to(dark,{opacity:0,duration:.6,ease:'power2.inOut'},A4+D4-.4);
+
+// ===== 5 Admin (desktop + phone slide up)
+const A5=A4+D4,D5=S.admin.duration;const s5=scene('admin',A5-.3,A5+D5+.5);
+const dw=940,dh=dw*900/1440,dx=W/2-dw/2,dy=safe.t+210;
+const desk=$('div','abs',s5,{left:dx+'px',top:dy+'px',width:dw+'px',height:dh+40+'px',borderRadius:'18px',overflow:'hidden',background:'#17121a',boxShadow:'0 40px 100px rgba(17,17,17,.2)'});
+const bar=$('div','abs',desk,{left:0,top:0,right:0,height:'40px',display:'flex',alignItems:'center',gap:'8px',padding:'0 16px'});for(let i=0;i<3;i++)$('i','dot',bar,{width:'12px',height:'12px',background:'#3a3236'});
+const dscr=$('div','scr',desk,{left:0,top:'40px',width:dw+'px',height:dh+'px'});const a1=img(dscr,S.admin.shots[0],{}),a2=img(dscr,S.admin.shots[1],{opacity:0}),a3=img(dscr,S.admin.shots[2],{opacity:0});
+const kk=.62,mp=$('div','abs',s5,{left:W-safe.l-390*kk+20+'px',top:dy+dh-40+'px',width:390*kk+20+'px',height:844*kk*.62+20+'px',borderRadius:'40px',background:'#111',boxShadow:'0 30px 80px rgba(17,17,17,.25)'});
+const mscr=$('div','scr',mp,{left:'10px',top:'10px',width:390*kk+'px',height:844*kk*.62+'px',borderRadius:'32px'});img(mscr,S.admin.phone,{});
+tl.fromTo(desk,{y:500,opacity:0,scale:.9},{y:0,opacity:1,scale:1,duration:.9,ease:E.overshoot,immediateRender:true},A5-.3);
+tl.fromTo(mp,{y:600,opacity:0},{y:0,opacity:1,duration:.9,ease:E.overshoot,immediateRender:true},A5-.05);
+const ring5=$('div','abs',s5,{width:'80px',height:'80px',borderRadius:'50%',border:`5px solid ${P.crimson}`,opacity:0,zIndex:3});
+const tap5=(x,y,at)=>{const X=dx+x*dw/1440,Y=dy+40+y*dw/1440;tl.set(ring5,{left:X-40,top:Y-40},at-.01);tl.fromTo(ring5,{scale:.2,opacity:1},{scale:1.6,opacity:0,duration:.6,ease:'expo.out',immediateRender:false},at)};
+tap5(S.admin.tapSave.x,S.admin.tapSave.y,A5+1.3);tl.to(a2,{opacity:1,duration:.2},A5+1.4);
+tap5(S.admin.tapToggle.x,S.admin.tapToggle.y,A5+2.6);tl.to(a3,{opacity:1,duration:.2},A5+2.7);
+island(S.admin.island,A5+1.45);island(S.admin.island2,A5+2.75);bottom(s5,S.admin.bottom,A5+.6,A5+D5-.1);qaTimes.push(A5+2);
+tl.to([desk,mp],{opacity:0,scale:.92,duration:.5,ease:'power2.in'},A5+D5-.5);
+
+// ===== 6 Push-in on a real number (counts up)
+const A6=A5+D5,D6=S.number.duration;const s6=scene('number',A6-.2,A6+D6+.4);
+const lab6=T(s6,S.number.label,{size:34,y:H/2-200,style:{fontWeight:600,letterSpacing:'-.01em',color:'#555'}});
+const num=T(s6,nfmt(S.number.value),{size:190,y:H/2-110,maxW:(safe.r-safe.l)*.86,style:{letterSpacing:'-.05em'}});num.style.width=num.offsetWidth+2+'px';num.style.textAlign='center';num.style.transformOrigin='50% 50%';num.className='t num';
+counter={el:num,a:A6+.1,d:1.6,v:S.number.value,fmt:nfmt};
+const sub6=T(s6,S.number.sub,{size:30,y:H/2+150,style:{fontWeight:600,color:'#777',letterSpacing:'-.01em'}});
+tl.fromTo(num,{scale:.55,opacity:0},{scale:1,opacity:1,duration:1.3,ease:E.camera,immediateRender:true},A6-.2);
+tl.fromTo([lab6,sub6],{opacity:0,y:20},{opacity:1,y:0,duration:.5,stagger:.15,immediateRender:true},A6+.3);
+tl.fromTo(num,{scale:1},{scale:1.12,duration:D6,ease:'sine.inOut',immediateRender:false},A6+1.1);
+island(S.number.island,A6+.4);qaTimes.push(A6+2);
+tl.to([num,lab6,sub6],{scale:.1,opacity:0,duration:.6,ease:E.camera},A6+D6-.5);
+
+// ===== 7 Collapse to the logo, ripple, brand lockup
+const A7=A6+D6,D7=S.brand.duration;const s7=scene('brand',A7-.3,null);
+const lc=$('div','abs',s7,{left:W/2-90+'px',top:H/2-150+'px',width:'180px',height:'180px'});const lci=img(lc,brand.logo.icon.onLight,{width:'180px'});
+const rip=$('div','abs',s7,{left:W/2-150+'px',top:H/2-210+'px',width:'300px',height:'300px',borderRadius:'50%',border:`4px solid ${P.crimson}`,opacity:0});
+const word=img(s7,brand.logo.full.onLight,{position:'absolute',width:'640px',left:W/2-320+'px',top:H/2-150+'px',opacity:0});
+const tag=T(s7,S.brand.tagline,{size:58,y:H/2+60,style:{fontWeight:800}});
+const feat=T(s7,S.brand.features,{size:26,y:H/2+170,style:{fontWeight:700,letterSpacing:'.14em',color:P.crimson}});
+tl.fromTo(lc,{scale:0,rotation:-60},{scale:1,rotation:0,duration:.7,ease:E.overshoot,immediateRender:true},A7-.3);
+tl.fromTo(rip,{scale:.3,opacity:.9},{scale:2.2,opacity:0,duration:1,ease:'expo.out',immediateRender:true},A7+.25);
+// logo shifts left and resolves into the full lockup (icon + wordmark)
+tl.to(lc,{x:-320+90-(-0),scale:192/180*.95,duration:.7,ease:E.camera},A7+.8);
+tl.to(lc,{opacity:0,duration:.2},A7+1.45);
+tl.fromTo(word,{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0% 0 0)',duration:.7,ease:E.camera,immediateRender:true},A7+1.0);
+tl.fromTo(tag,{opacity:0,y:30,filter:'blur(8px)'},{opacity:1,y:0,filter:'blur(0px)',duration:.6,immediateRender:true},A7+1.5);
+tl.fromTo(feat,{opacity:0,y:20},{opacity:1,y:0,duration:.6,immediateRender:true},A7+1.8);
+island(S.brand.island,A7+.3);qaTimes.push(A7+D7-.6);
+tl.set({},{},A7+D7);const total=A7+D7;
+// island text swaps (deterministic, by time)
+islTexts.sort((a,b)=>a[0]-b[0]);
+window.seek=tt=>{tl.seek(tt,false);let cur=islTexts[0][1];for(const [a,x] of islTexts)if(tt>=a-.14+.07)cur=x;if(islTxt.textContent!==cur)islTxt.textContent=cur;
+  for(const h of hovers)h.el.style.transform=`translateY(${(Math.sin(tt*2.2+h.ph)*10).toFixed(2)}px)`;
+  for(const b of blinkers)b.style.opacity=(.35+.65*(.5+.5*Math.cos(tt*Math.PI*2/1.2))).toFixed(3);
+  if(counter){const p=Math.min(1,Math.max(0,(tt-counter.a)/counter.d));const e=1-Math.pow(1-p,4);counter.el.textContent=counter.fmt(counter.v*e)}};
+window.qaCheck=()=>{const issues=[];const vis=e=>{for(let n=e;n&&n!==st;n=n.parentElement){const cs=getComputedStyle(n);if(cs.visibility==='hidden'||+cs.opacity<.05)return false}return true};
+  for(const e of textEls){if(!vis(e))continue;const r=e.getBoundingClientRect();if(r.left<safe.l-1||r.right>safe.r+1||r.top<safe.t-1||r.bottom>safe.b+1)issues.push(`"${(e.textContent||'').slice(0,30)}" outside safe area [${r.left|0},${r.top|0},${r.right|0},${r.bottom|0}]`);
+    if(e.scrollWidth>e.clientWidth+1&&e.className!=='t')issues.push(`"${(e.textContent||'').slice(0,30)}" overflows`)}return issues};
+const copy=[...textEls.map(e=>e.textContent),...islTexts.map(x=>x[1])];
+window.meta={W,H,theme:'light',style:plan.style,post:STY.post,music:plan.music||STY.audio.music,copy,duration:total,cuts,qaTimes,bpm:plan.bpm||STY.audio.bpm,fps:plan.fps,outFps:plan.outFps,output:plan.output,scenes:names,audio:plan.audio};
+await Promise.all([...document.images].map(i=>i.decode()));seek(0);return true}
+window.ready=main();
+</script></body></html>

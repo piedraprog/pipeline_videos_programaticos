@@ -1,0 +1,13 @@
+{
+  "name": "apple-saas-continuous",
+  "description": "Apple-like SaaS demo: off-white #f7f7f7 with a faint grid, black Inter, one dark #111 scene, green live/success dots, a global Dynamic Island pill that pops on every beat, snappy spring eases and a single continuous take (Z-axis zooms into an element that morphs into the next scene; no hard cuts). Brand colors only as accents.",
+  "template": "continuous",
+  "notes": "Grammar taken from an Instagram reference (Platomico restaurant POS demo, 35 s, 9:16). See references/apple-saas-continuous.md. Only rhythm/transitions/hierarchy were taken; no assets, logos or copy.",
+  "theme": "light",
+  "colors": { "bg": "#f7f7f7", "grid": "#1111110d", "text": "#111111", "dark": "#111111", "live": "#22c55e" },
+  "fonts": { "display": { "family": "Inter", "src": "engines/gsap/fonts/Inter.ttf", "weight": 800, "tracking": -0.04 } },
+  "motion": { "enter": "power4.out", "overshoot": "back.out(1.7)", "camera": "expo.inOut" },
+  "transition": { "type": "z-zoom-morph", "overlap": 0.3 },
+  "post": { "glowPass": false, "noise": 0 },
+  "audio": { "music": "minimal", "bpm": 110 }
+}
