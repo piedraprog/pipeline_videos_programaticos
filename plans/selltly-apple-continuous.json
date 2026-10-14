@@ -1,0 +1,37 @@
+{
+  "engine": "gsap",
+  "template": "continuous",
+  "brand": "brands/selltly/brand.json",
+  "style": "apple-saas-continuous",
+  "output": "projects/selltly-apple-continuous",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "bpm": 110,
+  "seed": 20261014,
+  "sources": "Store: projects/cap-store-reposteria-mobile (product.png, cart-added.png). Admin: projects/cap-admin-reposteria (editing/saved/hidden.png; Torta de vainilla USD 36,00). Order #102: plans/stock-whatsapp-order-9x16.json (from cap-store-reposteria cart: 1x Torta red velvet 8p USD 45,00 + 2x Torta tres leches USD 38,00 c/u = USD 121,00).",
+  "story": {
+    "problem": { "duration": 6.4, "island": "Pedidos dispersos", "lines": [
+      { "text": "Tu catálogo en PDF.", "icon": "pdf" },
+      { "text": "Tus fotos en WhatsApp.", "icon": "chat" },
+      { "text": "Tus precios en notas.", "icon": "notes" },
+      { "text": "Tres lugares." },
+      { "text": "Ninguno conectado." } ] },
+    "hub": { "duration": 4.6, "island": "Todo conectado", "kicker": "/ TODO EN UN SOLO LUGAR", "bottom": "Con Selltly todo se conecta",
+      "nodes": [ { "label": "Catálogo", "icon": "pdf" }, { "label": "WhatsApp", "icon": "chat" }, { "label": "Precios", "icon": "notes" },
+                 { "label": "Clientes", "icon": "users" }, { "label": "Disponibilidad", "icon": "toggle" }, { "label": "Pedidos", "icon": "bag" } ] },
+    "store": { "duration": 5.6, "island": "Dulce Horno · tienda abierta", "island2": "Nuevo pedido · Dulce Horno",
+      "product": "projects/cap-store-reposteria-mobile/assets/product.png", "added": "projects/cap-store-reposteria-mobile/assets/cart-added.png",
+      "tapAdd": { "x": 259, "y": 755 }, "button": "Enviar pedido por WhatsApp",
+      "toasts": [ "Pedido enviado a tu WhatsApp", "Carrito con 2 productos", "Total: USD 121,00" ], "bottom": "Un toque. Todo llega ordenado." },
+    "chat": { "duration": 4.6, "island": "Pedido #102 recibido", "island2": "Pedido #102 atendido", "initials": "DH", "name": "Dulce Horno · Pedidos",
+      "lines": [ "*Nuevo Pedido #102*", "Cliente: María", "", "1 x Torta red velvet 8p", "   USD 45,00", "2 x Torta tres leches", "   USD 76,00 (USD 38,00 c/u)", "", "*Total: USD 121,00*" ],
+      "done": "Atendido", "bottom": "Directo a tu WhatsApp, sin preguntas repetidas." },
+    "admin": { "duration": 4.6, "island": "Precio actualizado", "island2": "Disponibilidad actualizada",
+      "shots": [ "projects/cap-admin-reposteria/assets/editing.png", "projects/cap-admin-reposteria/assets/saved.png", "projects/cap-admin-reposteria/assets/hidden.png" ],
+      "phone": "projects/cap-store-reposteria-mobile/assets/home.png",
+      "tapSave": { "x": 1337, "y": 85 }, "tapToggle": { "x": 1391, "y": 193 }, "bottom": "Actualizas precios en segundos." },
+    "number": { "duration": 3.4, "island": "Total del pedido #102", "label": "Pedido #102 · Dulce Horno", "value": 121, "prefix": "USD ", "decimals": 2, "sub": "2 productos · directo a WhatsApp" },
+    "brand": { "duration": 3.6, "island": "Selltly", "tagline": "Vende con más orden.", "features": "CATÁLOGO • PEDIDOS • CLIENTES • WHATSAPP" }
+  }
+}
