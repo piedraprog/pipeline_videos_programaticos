@@ -12,8 +12,8 @@ coverage
 
 # logs
 logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
 .env
@@ -33,6 +33,15 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
+# local agent / machine fingerprints (do not publish)
+.atl/
+.codegraph/
+.sessions/
+
+# scratch / one-off debug scripts
+_verify.mjs
+_x.mjs
+
 # generated video exports
 *.mp4
 *.mov
@@ -49,6 +58,5 @@ projects/selltly-*/
 projects/bumpers-*/
 projects/*
 references/*/
-.sessions/
 projects/stock-*/
 projects/cap-*/
