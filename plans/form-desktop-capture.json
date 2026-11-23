@@ -1,0 +1,29 @@
+{
+  "projectName": "form-desktop-capture",
+  "title": "FORM desktop capture",
+  "subtitle": "Source screens for plans/form-product-demo.json",
+  "baseUrl": "../demos/studio-store/index.html",
+  "viewport": { "width": 1440, "height": 900 },
+  "fps": 60,
+  "scenes": [
+    { "id": "catalog", "durationFrames": 60, "actions": [
+      { "type": "waitFor", "selector": "#catalog", "text": "Arc headphones" },
+      { "type": "screenshot", "boxes": { "product": "[data-product=\"arc-headphones\"]", "catalog": "#catalog" } } ] },
+    { "id": "product", "durationFrames": 60, "actions": [
+      { "type": "click", "selector": "[data-product=\"arc-headphones\"]" },
+      { "type": "waitFor", "selector": "#product-stock", "text": "8 available" },
+      { "type": "screenshot", "boxes": { "stock": "#product-stock", "add": "#add-to-cart" } } ] },
+    { "id": "added", "durationFrames": 60, "actions": [
+      { "type": "click", "selector": "#add-to-cart" },
+      { "type": "waitFor", "selector": "#added-notice", "text": "Added to your bag" },
+      { "type": "screenshot", "boxes": { "notice": "#added-notice", "viewCart": "#view-cart" } } ] },
+    { "id": "cart", "durationFrames": 60, "actions": [
+      { "type": "click", "selector": "#view-cart" },
+      { "type": "waitFor", "selector": "#cart-total", "text": "129.00" },
+      { "type": "screenshot", "boxes": { "items": "#cart-items", "total": "#cart-total", "checkout": "#checkout" } } ] },
+    { "id": "confirmed", "durationFrames": 60, "actions": [
+      { "type": "click", "selector": "#checkout" },
+      { "type": "waitFor", "selector": "#confirmation", "text": "Order confirmed" },
+      { "type": "screenshot", "boxes": { "confirmation": "#confirmation" } } ] }
+  ]
+}

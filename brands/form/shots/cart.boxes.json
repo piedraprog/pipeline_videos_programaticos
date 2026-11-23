@@ -1,0 +1,23 @@
+{
+  "items": {
+    "x": 393,
+    "y": 237.390625,
+    "width": 654,
+    "height": 122,
+    "text": "Arc headphones Sage / matte finish Quantity: 1 · $129.00 Remove"
+  },
+  "total": {
+    "x": 971.203125,
+    "y": 485.390625,
+    "width": 75.796875,
+    "height": 26,
+    "text": "$129.00"
+  },
+  "checkout": {
+    "x": 393,
+    "y": 650.984375,
+    "width": 654,
+    "height": 50,
+    "text": "Place demo order ↗"
+  }
+}

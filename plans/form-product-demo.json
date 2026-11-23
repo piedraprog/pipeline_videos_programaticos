@@ -1,0 +1,43 @@
+{
+  "engine": "gsap",
+  "template": "demo",
+  "brand": "brands/form/brand.json",
+  "style": "soft-depth",
+  "format": "16x9",
+  "fps": 240,
+  "outFps": 30,
+  "shutter": 180,
+  "audio": "music",
+  "output": "projects/form-product-demo",
+  "story": {
+    "viewport": { "width": 1440, "height": 900 },
+    "intro": { "kicker": "Fictional demo store", "title": "Everyday objects, considered.", "subtitle": "From catalog to confirmed order in four clicks.", "duration": 3.4 },
+    "screens": [
+      { "id": "catalog", "image": "brands/form/shots/catalog.png", "boxes": "brands/form/shots/catalog.boxes.json", "url": "form.example/" },
+      { "id": "product", "image": "brands/form/shots/product.png", "boxes": "brands/form/shots/product.boxes.json", "url": "form.example/arc-headphones" },
+      { "id": "added", "image": "brands/form/shots/added.png", "boxes": "brands/form/shots/added.boxes.json", "url": "form.example/arc-headphones" },
+      { "id": "cart", "image": "brands/form/shots/cart.png", "boxes": "brands/form/shots/cart.boxes.json", "url": "form.example/bag" },
+      { "id": "confirmed", "image": "brands/form/shots/confirmed.png", "boxes": "brands/form/shots/confirmed.boxes.json", "url": "form.example/confirmed" }
+    ],
+    "beats": [
+      { "screen": "catalog", "duration": 5.2, "title": "A catalog that stays in stock", "caption": "Every object shows what is available right now.",
+        "camera": [ { "at": 0.2, "focus": "full", "duration": 1.6 }, { "at": 2.3, "focus": "product", "fill": 0.72, "tilt": [3, -5], "duration": 1.5 } ],
+        "cursor": [ { "at": 3.9, "to": "product", "anchor": [0.5, 0.45], "duration": 1.0, "click": true } ] },
+      { "screen": "product", "duration": 4.6, "title": "Stock you can trust", "caption": "The count comes from the store, not from a banner.",
+        "camera": [ { "at": 0.3, "focus": "stock", "fill": 0.3, "tilt": [-2, 4], "duration": 1.4, "dip": 0.18 }, { "at": 2.6, "focus": "add", "fill": 0.5, "tilt": [2, -3], "duration": 1.2 } ],
+        "highlight": [ { "at": 1.3, "box": "stock", "label": "Live availability", "duration": 1.2 } ],
+        "cursor": [ { "at": 3.3, "to": "add", "duration": 0.9, "click": true } ] },
+      { "screen": "added", "duration": 3.8, "title": "Added in one click",
+        "camera": [ { "at": 0.3, "focus": "notice", "fill": 0.5, "tilt": [1, 3], "duration": 1.2 } ],
+        "highlight": [ { "at": 0.9, "box": "notice", "duration": 1.5 } ],
+        "cursor": [ { "at": 2.6, "to": "viewCart", "duration": 0.85, "click": true } ] },
+      { "screen": "cart", "duration": 4.6, "title": "A bag with no surprises", "caption": "One total, one button.",
+        "camera": [ { "at": 0.2, "focus": "full", "duration": 1.3, "dip": 0.1 }, { "at": 2.0, "focus": "total", "fill": 0.1, "tilt": [-3, -4], "duration": 1.2 } ],
+        "highlight": [ { "at": 2.6, "box": "total", "label": "Final price", "duration": 1.0 } ],
+        "cursor": [ { "at": 3.5, "to": "checkout", "duration": 0.9, "click": true } ] },
+      { "screen": "confirmed", "duration": 3.6, "title": "Order confirmed",
+        "camera": [ { "at": 0.2, "focus": "confirmation", "fill": 0.62, "tilt": [2, 4], "duration": 1.4, "dip": 0.12 }, { "at": 2.2, "focus": "full", "duration": 1.3 } ] }
+    ],
+    "outro": { "title": "Less, but better.", "subtitle": "FORM is a fictional store used to test this pipeline.", "duration": 3.6 }
+  }
+}
