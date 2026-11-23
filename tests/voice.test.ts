@@ -15,7 +15,7 @@ test('each narration line starts shortly after its scene begins and may run unti
   expect(collectLines(plan, meta)).toEqual([
     { scene: 'intro', text: 'Hola.', at: 0.4, sceneEnd: 8 },
     { scene: 'b-2', text: 'Segunda pantalla.', at: 8.4, sceneEnd: 12 },
-    { scene: 'outro', text: 'Cierre.', at: 12.4, sceneEnd: 15 },
+    { scene: 'outro', text: 'Cierre.', at: 12.4, sceneEnd: 12.5 },
   ]);
 });
 
@@ -59,4 +59,12 @@ test('a track shorter than the piece is repeated just enough times, and a longer
   expect(copiesNeeded(90, 30)).toBe(4);
   expect(loopGraph(1, 60)).toEqual({ graph: [], last: '[0:a]' });
   expect(loopGraph(2, 30).last).toBe('[loop1]');
+});
+
+test('the last line must leave air before the piece ends, and sayAt delays a line inside its scene', () => {
+  const closing = { story: { intro: {}, beats: [], outro: { say: 'Hasta aquí.', sayAt: 1.2 } } };
+  const [line] = collectLines(closing, { cuts: [0, 10], scenes: ['intro', 'outro'], duration: 18 });
+  expect(line).toMatchObject({ at: 11.2, sceneEnd: 15.5 });
+  expect(findOverflows([{ ...line, duration: 4 }])).toEqual([]);
+  expect(findOverflows([{ ...line, duration: 4.5 }])).toHaveLength(1);
 });

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { FF, PY } from './bin.mjs';
 
 const FADE_IN_SECONDS = 0.4;
-const FADE_OUT_SECONDS = 1.5;
+const FADE_OUT_SECONDS = 2.5;
 const LOOP_CROSSFADE_SECONDS = 4;
 // Most tracks end on a fade to silence; that tail is dropped before the next pass comes in.
 const LOOP_TAIL_TRIM_SECONDS = 2;

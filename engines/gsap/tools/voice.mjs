@@ -14,6 +14,8 @@ import { prepareMusic } from './music.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const LEAD_IN_SECONDS = 0.4;
 const TAIL_SECONDS = 0.2;
+// The last line needs air after it: a piece that ends on the final word feels cut off.
+const ENDING_TAIL_SECONDS = 2.5;
 const DEFAULT_MUSIC_VOLUME = 0.75;
 
 const PROVIDERS = {
@@ -31,8 +33,9 @@ export function collectLines(plan, meta) {
   scenes.forEach((scene, index) => {
     if (!scene.say) return;
     const nextNarrated = scenes.findIndex((later, laterIndex) => laterIndex > index && later.say);
-    const sceneEnd = nextNarrated === -1 ? meta.duration : meta.cuts[nextNarrated];
-    lines.push({ scene: meta.scenes[index], text: scene.say, at: meta.cuts[index] + LEAD_IN_SECONDS, sceneEnd });
+    const sceneEnd = nextNarrated === -1 ? meta.duration - ENDING_TAIL_SECONDS : meta.cuts[nextNarrated];
+    // `sayAt` delays a line inside its scene, e.g. until the closing title has appeared.
+    lines.push({ scene: meta.scenes[index], text: scene.say, at: meta.cuts[index] + (scene.sayAt ?? LEAD_IN_SECONDS), sceneEnd });
   });
   return lines;
 }
@@ -120,10 +123,13 @@ function mix({ video, music, musicVolume, lines, output }) {
   const firstVoice = music ? 2 : 1;
   const delayed = lines.map((line, index) => `[${firstVoice + index}:a]aresample=48000,adelay=${Math.round(line.at * 1000)}:all=1[v${index}]`);
   const voiceBus = `${lines.map((_, index) => `[v${index}]`).join('')}amix=inputs=${lines.length}:normalize=0,apad`;
+  // Written under another name and renamed at the end, so a half-written file is never opened by mistake.
+  const partial = output.replace(/\.mp4$/, '.partial.mp4');
   const graph = music
     ? [...delayed, `${voiceBus},asplit[vo][key]`, `[1:a]volume=${musicVolume}[bed]`, '[bed][key]sidechaincompress=threshold=0.02:ratio=9:attack=40:release=450[duck]', '[duck][vo]amix=inputs=2:normalize=0,alimiter=limit=0.9[a]']
     : [...delayed, `${voiceBus},alimiter=limit=0.9[a]`];
-  execFileSync(FF, ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', graph.join(';'), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', output], { stdio: 'inherit' });
+  execFileSync(FF, ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', graph.join(';'), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', partial], { stdio: 'inherit' });
+  fs.renameSync(partial, output);
 }
 
 function resolveVoice(plan, providerOverride) {

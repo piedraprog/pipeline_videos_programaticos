@@ -15,7 +15,9 @@ const port=srv.address().port;
 const plan=JSON.parse(fs.readFileSync(path.join(ROOT,planArg)));
 const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[plan.format];
 const out=path.join(ROOT,plan.output);fs.mkdirSync(path.join(out,'qa'),{recursive:true});
-const b=await chromium.launch({channel:'chrome',chromiumSandbox:true});const p=await b.newPage({viewport:{width:W,height:H}});
+// plan.supersample 2 captures every frame at twice the resolution and scales it down, for sharper text and edges.
+const SS=plan.supersample??1;const PAGE={viewport:{width:W,height:H},deviceScaleFactor:SS};
+const b=await chromium.launch({channel:'chrome',chromiumSandbox:true});const p=await b.newPage(PAGE);
 p.on('pageerror',e=>console.error('page error',e));
 const pageUrl=`http://localhost:${port}/engines/gsap/${plan.template||'index'}.html?plan=${encodeURIComponent(planArg)}`;
 const open=async pg=>{await pg.goto(pageUrl);await pg.waitForFunction(()=>window.ready!==undefined,null,{timeout:60000});await pg.evaluate(()=>window.ready)};
@@ -31,7 +33,7 @@ const qaFiles=[];const tq=Date.now();
 const ALPHA=!!meta.alpha;const CHECKER="repeating-conic-gradient(#5a5a5a 0% 25%, #3c3c3c 0% 50%) 0 0/48px 48px";
 if(ALPHA)await p.evaluate(c=>{document.documentElement.style.background=c},CHECKER); // QA/contact sheet over a gray checker so the overlay is visible
 for(const [i,t] of meta.qaTimes.entries()){await p.evaluate(t=>{seek(t)},t);const issues=await p.evaluate(()=>qaCheck());
-  const f=path.join(out,'qa',`scene-${i+1}-${meta.scenes[i]}.png`);await p.screenshot({path:f});qaFiles.push([f,`${i+1} ${meta.scenes[i]} t=${t.toFixed(2)}s`]);
+  const f=path.join(out,'qa',`scene-${i+1}-${meta.scenes[i]}.png`);await p.screenshot({path:f,scale:'css'});qaFiles.push([f,`${i+1} ${meta.scenes[i]} t=${t.toFixed(2)}s`]);
   console.log(`QA scene ${i+1} (${meta.scenes[i]}) @${t.toFixed(2)}s: ${issues.length?'FAIL':'ok'}`);issues.forEach(x=>console.log('   - '+x));if(issues.length)failed=true}
 console.log(`STAGE qa: ${((Date.now()-tq)/1000).toFixed(1)}s`);execFileSync(PY,[path.join(ROOT,'engines/gsap/tools/sheet.py'),path.join(out,'contact-sheet.png'),...qaFiles.flat()]);
 if(failed){console.error('QA failed: fix the plan/copy before rendering.');await b.close();srv.close();process.exit(1)}
@@ -48,7 +50,7 @@ const fd=path.join(out,'frames');fs.rmSync(fd,{recursive:true,force:true});fs.mk
 const n=Math.round(meta.duration*meta.fps);const t0=Date.now();
 // Parallel frame capture: N pages, each seeks its own interleaved frames (deterministic, order-independent).
 const wArg=process.argv.find(a=>a.startsWith('--workers='));const N=Math.max(1,+(wArg?.split('=')[1]||Math.min(6,Math.max(1,Math.floor(os.cpus().length/3)))));
-const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage({viewport:{width:W,height:H}});await open(q);pages.push(q)}
+const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage(PAGE);await open(q);pages.push(q)}
 let done=0;
 // Motion blur: meta.fps/meta.outFps sub-frames exist per output frame. With meta.shutter (degrees) only the
 // sub-frames inside the open shutter are captured and averaged, like a film camera. Without it, every
@@ -70,10 +72,15 @@ if(ALPHA){ // transparent overlay: ProRes 4444 (main) + VP9 WebM with alpha, no 
   execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),'-vf',`${blend},format=yuva420p`,'-c:v','libvpx-vp9','-pix_fmt','yuva420p','-b:v','0','-crf','28','-row-mt','1','-auto-alt-ref','0',base+'.webm'],{stdio:'inherit'});
   console.log(`STAGE ffmpeg: ${((Date.now()-t1)/1000).toFixed(1)}s`);fs.rmSync(fd,{recursive:true,force:true});console.log('Rendered',base+'.mov',base+'.webm');process.exit(0)}
 const mp4=path.join(out,path.basename(plan.output)+'.mp4');t1=Date.now();
+// Encoded under another name and renamed at the end, so a half-written file is never mistaken for the video.
+const partial=mp4.replace(/\.mp4$/,'.partial.mp4');
+// HD players assume BT.709; without the explicit matrix ffmpeg converts RGB with BT.601 and colors shift.
+const FIT=`scale=${W}:${H}:flags=lanczos:out_color_matrix=bt709:out_range=tv`;
 const vf=(()=>{const post=meta.post||{glowPass:meta.theme!=='light',noise:meta.theme==='light'?2:5};const blend=`[0:v]format=gbrp,${MIX}`;const nz=post.noise?`,noise=alls=${post.noise}:allf=t`:'';
-  return post.glowPass?`${blend},split[a][b];[b]curves=all='0/0 0.7/0 1/1',gblur=sigma=${18*Math.min(W,H)/1080}[gl];[a][gl]blend=all_mode=screen:all_opacity=0.4${nz},format=yuv420p[v]`:`${blend}${nz},format=yuv420p[v]`})();
+  return post.glowPass?`${blend},split[a][b];[b]curves=all='0/0 0.7/0 1/1',gblur=sigma=${18*Math.min(W,H)/1080}[gl];[a][gl]blend=all_mode=screen:all_opacity=0.4${nz},${FIT},format=yuv420p[v]`:`${blend}${nz},${FIT},format=yuv420p[v]`})();
 execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),...(silent?[]:['-i',path.join(out,'music.wav')]),'-filter_complex',vf,
- '-map','[v]',...(silent?['-an']:['-map','1:a','-c:a','aac','-b:a','192k','-shortest']),'-c:v','libx264','-crf','17','-preset','slow','-movflags','+faststart',mp4],{stdio:'inherit'});
+ '-map','[v]',...(silent?['-an']:['-map','1:a','-c:a','aac','-b:a','256k','-shortest']),'-c:v','libx264','-crf',String(plan.crf??17),'-preset','slow','-profile:v','high','-pix_fmt','yuv420p','-colorspace','bt709','-color_primaries','bt709','-color_trc','bt709','-color_range','tv','-movflags','+faststart',partial],{stdio:'inherit'});
+fs.renameSync(partial,mp4);
 console.log(`STAGE ffmpeg: ${((Date.now()-t1)/1000).toFixed(1)}s`);
 fs.rmSync(fd,{recursive:true,force:true});
 console.log('Rendered',mp4);
