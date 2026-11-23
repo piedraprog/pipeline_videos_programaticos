@@ -1,0 +1,12 @@
+{
+  "name": "FORM",
+  "note": "Fictional store authored for this repository (demos/studio-store). Safe to reuse as an example.",
+  "logo": { "text": "FORM" },
+  "palette": { "forest": "#1c3b33", "paper": "#f5f0e6", "lime": "#d6fb54", "terracotta": "#e07a50", "sage": "#c9d6c4" },
+  "fonts": { "ui": { "family": "Manrope", "src": "demos/studio-store/fonts/manrope.ttf" } },
+  "demoColors": {
+    "bg": "@paper", "glows": ["@lime", "@terracotta", "@sage"],
+    "text": "@forest", "accent": "@forest", "accentText": "@lime", "cardText": "@forest"
+  },
+  "messaging": { "forbidden": [] }
+}

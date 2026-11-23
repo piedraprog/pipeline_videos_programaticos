@@ -105,6 +105,20 @@ QA gates (all must pass before claiming success):
 - Then inspect the contact sheet and frames yourself. A passing exit code is not visual proof.
 - `bun test` must stay green; it needs Node >= 24.
 
+## Runbook: product demo (`"template": "demo"`)
+
+A 16:9 walkthrough of a desktop web app: the product sits in a browser window and one camera take travels across it. Example: `plans/form-product-demo.json` (fictional FORM store). Template `engines/gsap/demo.html`, style `soft-depth`, motion kit `engines/gsap/lib/motion.js`.
+
+1. **Capture** the screens with the regular capture stage at a desktop viewport (`plans/form-desktop-capture.json`). Give every element the camera, cursor or spotlight will visit a name in the screenshot's `"boxes"`. Copy the PNGs and `*.boxes.json` into the brand kit's `shots/`. Captures are 2x, so the camera can zoom to about 1.85 without softening.
+2. **Story** (`plan.story`): `intro` and `outro` (`title`, `subtitle`, `duration`), `screens` (`id`, `image`, `boxes`, `url`), and `beats`. A beat has `screen`, `duration`, optional `title`/`caption` (the caption card), and four tracks whose `at` is seconds from the start of the beat:
+   - `camera`: `{at, focus, fill, tilt:[x,y], duration, dip}`. `focus` is a box name or `"full"`. `fill` is the share of the frame the box should occupy. `dip` (0.1-0.2) pulls the zoom back mid-move; use it for a long pan between two close-ups.
+   - `cursor`: `{at, to, anchor:[x,y], duration, click}`. The click lands when the move ends.
+   - `highlight`: `{at, box, label, duration}`. Dims the rest of the page.
+   - `scroll`: `{at, to, duration}` for full-page captures; `to` is a box name or a page y.
+3. **Choreography rules.** Do not move everything at once: camera first, then the caption, then the cursor. End a beat with a click and switch screen on the next beat so the change has a cause. Leave at least 1.2 s of hold after the camera settles. Alternate the tilt sign between beats; keep it within ±6 degrees while text must be read. Never overlap two camera moves in time.
+4. **Motion blur.** `"fps": 240, "outFps": 30, "shutter": 180` renders 8 sub-frames per output frame and averages the 4 inside the open shutter. Use `"fps": 60` without `shutter` for fast drafts. A 30 s piece takes about 3 minutes at full quality.
+5. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
+
 ## Public repository: private work goes in `private/`
 
 - This repository is public. Anything for a client or an unreleased product (brand kit, plan, screenshots, copy, renders) goes under `private/` (`private/brands/<client>/`, `private/plans/<name>.json`, output `private/projects/<name>`). It is git-ignored. Never create those files under `brands/`, `plans/` or `demos/`.

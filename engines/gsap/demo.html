@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Product demo template</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow:hidden;background:#000}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;perspective:2600px;perspective-origin:50% 50%}
+.fill{position:absolute;inset:0}
+.blob{position:absolute;width:1500px;height:1500px;border-radius:50%;will-change:transform}
+#world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-style:preserve-3d;will-change:transform}
+.win{position:absolute;border-radius:18px;overflow:hidden;transform-origin:50% 100%;
+  box-shadow:0 0 0 1px var(--hairline),0 3px 8px rgba(8,16,32,.08),var(--sx,0px) calc(var(--sy,36px)*.7) 50px -14px rgba(8,16,32,.22),calc(var(--sx,0px)*2) calc(var(--sy,36px)*2.2) 150px -40px var(--shadow)}
+.chrome{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;gap:9px;padding:0 20px}
+.chrome i{width:13px;height:13px;border-radius:50%;background:var(--chrome-dot)}
+.url{margin-left:22px;height:30px;padding:0 18px;border-radius:15px;display:flex;align-items:center;font-size:15px;font-weight:500;letter-spacing:.01em;background:var(--chrome-pill);color:var(--chrome-text)}
+.view{position:absolute;left:0;right:0;overflow:hidden;background:#fff}
+.screen{position:absolute;left:0;top:0;width:100%;opacity:0;transform-origin:50% 30%}
+.screen img{display:block;width:100%}
+.spot{position:absolute;border-radius:12px;opacity:0;box-shadow:0 0 0 3px var(--accent),0 0 0 4000px var(--dim)}
+.spot span{position:absolute;left:-3px;white-space:nowrap;padding:9px 16px;border-radius:10px;background:var(--accent);color:var(--accent-text);font-size:19px;font-weight:700;letter-spacing:-.005em}
+.sheen{position:absolute;inset:0 -30%;pointer-events:none;background:linear-gradient(112deg,transparent 42%,rgba(255,255,255,.1) 50%,transparent 58%)}
+.card{position:absolute;left:96px;bottom:74px;max-width:820px;padding:28px 36px 30px;border-radius:26px;opacity:0;
+  background:var(--card);backdrop-filter:blur(30px) saturate(1.5);border:1px solid var(--card-line);box-shadow:0 30px 80px -24px rgba(8,16,32,.4),0 4px 14px rgba(8,16,32,.08)}
+.card h2{text-wrap:balance;font-size:42px;line-height:1.14;font-weight:700;letter-spacing:-.03em;color:var(--card-text)}
+.card p{margin-top:10px;font-size:25px;line-height:1.35;font-weight:500;color:var(--card-muted)}
+.center{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;text-align:center}
+.kicker{font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.headline{max-width:1500px;text-wrap:balance;font-size:96px;line-height:1.04;font-weight:800;letter-spacing:-.045em;color:var(--text)}
+.sub{max-width:1100px;font-size:34px;line-height:1.3;font-weight:500;color:var(--muted)}
+.mark{font-size:64px;font-weight:800;letter-spacing:-.04em;color:var(--text)}
+</style>
+<script src="../../node_modules/gsap/dist/gsap.min.js"></script></head>
+<body><div id="stage"></div>
+<script type="module">
+import { createCamera, createCursor, createTrack, hideWords, registerEases, revealWords, splitWords } from './lib/motion.js';
+
+const ROOT = '../../';
+const W = 1920, H = 1080;
+const SAFE = { left: W * 0.04, right: W * 0.96, top: H * 0.05, bottom: H * 0.95 };
+const WINDOW_WIDTH = 1480, CHROME_HEIGHT = 50;
+const HERO_TILT = { tiltX: 8, tiltY: -11 };
+// Targets sit slightly above center so the caption card rarely covers what the camera is looking at.
+const CAPTION_LIFT = 46;
+const MAX_ZOOM = 1.85;
+
+async function loadJson(file) {
+  const response = await fetch(ROOT + file);
+  if (!response.ok) throw new Error(`Missing resource: ${file}`);
+  return response.json();
+}
+
+function make(tag, className, parent, css, text) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (css) Object.assign(element.style, css);
+  if (text != null) element.textContent = text;
+  parent.append(element);
+  return element;
+}
+
+// "@name" reads brand.palette.name, so one style serves every brand.
+function resolveColors(style, brand, plan) {
+  const pick = (value) => {
+    if (typeof value !== 'string' || !value.startsWith('@')) return value;
+    const color = brand.palette?.[value.slice(1)];
+    if (!color) throw new Error(`Style color ${value} is not in the brand palette`);
+    return color;
+  };
+  const merged = { ...style.colors, ...brand.demoColors, ...plan.colors };
+  return Object.fromEntries(Object.entries(merged).map(([key, value]) => [key, Array.isArray(value) ? value.map(pick) : pick(value)]));
+}
+
+async function loadFont(brand, style) {
+  const font = brand.fonts?.ui ?? style.fonts.display;
+  const face = new FontFace('Demo', `url(${ROOT + font.src})`, { weight: '100 900' });
+  document.fonts.add(await face.load());
+}
+
+async function loadScreens(story) {
+  const screens = {};
+  for (const screen of story.screens) {
+    const image = new Image();
+    image.src = ROOT + screen.image;
+    await image.decode();
+    const scale = screen.scale ?? 2;
+    screens[screen.id] = {
+      ...screen,
+      image,
+      boxes: screen.boxes ? await loadJson(screen.boxes) : {},
+      pageWidth: image.naturalWidth / scale,
+      pageHeight: image.naturalHeight / scale,
+      scroll: createTrack({ y: 0 }),
+    };
+  }
+  return screens;
+}
+
+async function main() {
+  const plan = await loadJson(new URLSearchParams(location.search).get('plan'));
+  if (plan.format !== '16x9') throw new Error('The demo template renders 16x9 only');
+  const [brand, style] = await Promise.all([loadJson(plan.brand), loadJson(`styles/${plan.style}.json`)]);
+  if (style.deprecated) throw new Error(`Style ${plan.style} is deprecated`);
+  const story = plan.story;
+  const colors = resolveColors(style, brand, plan);
+  const dark = style.theme === 'dark';
+  registerEases(gsap);
+  await loadFont(brand, style);
+  const screens = await loadScreens(story);
+  const viewport = story.viewport ?? { width: 1440, height: 900 };
+  const pageScale = WINDOW_WIDTH / viewport.width;
+  const viewHeight = viewport.height * pageScale;
+  const windowRect = { x: (W - WINDOW_WIDTH) / 2, y: (H - viewHeight - CHROME_HEIGHT) / 2, width: WINDOW_WIDTH, height: viewHeight + CHROME_HEIGHT };
+
+  const stage = document.getElementById('stage');
+  stage.style.cssText += `;font-family:Demo,sans-serif;background:${colors.bg};--accent:${colors.accent};--accent-text:${colors.accentText};--text:${colors.text};--muted:${colors.muted};` +
+    `--card:${colors.card};--card-line:${colors.cardLine};--card-text:${colors.cardText};--card-muted:${colors.cardMuted};--dim:${colors.dim};--shadow:${colors.shadow};` +
+    `--hairline:${dark ? 'rgba(255,255,255,.1)' : 'rgba(8,16,32,.08)'};--chrome-dot:${dark ? '#3b4658' : '#d5dae2'};--chrome-pill:${dark ? '#111a2b' : '#eef1f5'};--chrome-text:${dark ? '#8fa0b8' : '#6b7686'}`;
+
+  // ---- Background: soft light blobs that drift on their own and lag behind the camera
+  const backdrop = make('div', 'fill', stage);
+  const blobs = colors.glows.map((glow, index) => ({
+    element: make('div', 'blob', backdrop, { background: `radial-gradient(circle,${glow} 0%,transparent 64%)`, opacity: style.background.glow }),
+    anchor: [[-320, -520], [900, 160], [240, 420]][index % 3],
+    phase: index * 2.1,
+    depth: 0.12 + index * 0.07,
+  }));
+  const dots = make('div', 'fill', backdrop, { inset: '-80px', backgroundImage: `radial-gradient(circle at 1.5px 1.5px,${colors.dots} 1.5px,transparent 0)`, backgroundSize: '46px 46px' });
+  make('div', 'fill', stage, { background: `radial-gradient(ellipse at 50% 45%,transparent 52%,${colors.vignette} 100%)` });
+
+  // ---- World: the browser window, spotlights and cursor live in camera space
+  const world = make('div', '', stage);
+  world.id = 'world';
+  const win = make('div', 'win', world, { left: `${windowRect.x}px`, top: `${windowRect.y}px`, width: `${windowRect.width}px`, height: `${windowRect.height}px`, background: dark ? '#1a2436' : '#f8f9fb' });
+  const chrome = make('div', 'chrome', win, { height: `${CHROME_HEIGHT}px` });
+  for (let i = 0; i < 3; i++) make('i', '', chrome);
+  const url = make('div', 'url', chrome, null, story.screens[0].url ?? '');
+  const view = make('div', 'view', win, { top: `${CHROME_HEIGHT}px`, height: `${viewHeight}px` });
+  for (const screen of Object.values(screens)) {
+    screen.element = make('div', 'screen', view);
+    screen.element.append(screen.image);
+  }
+  const spots = make('div', 'fill', view);
+  const sheen = make('div', 'sheen', win);
+  const hud = make('div', 'fill', stage);
+
+  const timeline = gsap.timeline({ paused: true });
+  const camera = createCamera({ world, width: W, height: H });
+  const cursor = createCursor({ parent: world, color: colors.accent, start: { x: windowRect.x + windowRect.width * 0.72, y: windowRect.y + windowRect.height * 0.8 } });
+  const checkedTexts = [];
+  const copy = [];
+  const urlChanges = [];
+
+  function pageRect(screen, target) {
+    if (typeof target === 'object') return target;
+    const box = screen.boxes[target];
+    if (!box) throw new Error(`Screen "${screen.id}" has no box "${target}". Available: ${Object.keys(screen.boxes).join(', ') || 'none'}`);
+    return box;
+  }
+  function worldRect(screen, target, time) {
+    const box = pageRect(screen, target);
+    const scrollY = screen.scroll.at(time).y;
+    return { x: windowRect.x + box.x * pageScale, y: windowRect.y + CHROME_HEIGHT + (box.y - scrollY) * pageScale, width: box.width * pageScale, height: box.height * pageScale };
+  }
+  const fullPose = { ...camera.frame(windowRect, 0.88), tiltX: 0, tiltY: 0 };
+
+  function centeredText(parent, className, text, css) {
+    const element = make('div', className, parent, css, text);
+    checkedTexts.push(element);
+    copy.push(text);
+    return element;
+  }
+  function brandMark(parent, height) {
+    const source = brand.logo?.full?.[dark ? 'onDark' : 'onLight'];
+    if (!source) return make('div', 'mark', parent, null, brand.logo?.text ?? brand.name);
+    const image = make('img', '', parent, { height: `${height}px` });
+    image.src = ROOT + source;
+    return image;
+  }
+
+  // ---- Intro: brand and promise alone, then the product rises into the frame
+  const intro = story.intro;
+  const introLayer = make('div', 'center', hud, { top: '0', height: `${H}px`, justifyContent: 'center', gap: '30px' });
+  const introMark = brandMark(introLayer, 78);
+  const introKicker = intro.kicker ? centeredText(introLayer, 'kicker', intro.kicker) : null;
+  const introTitle = splitWords(centeredText(introLayer, 'headline', intro.title));
+  const introSub = intro.subtitle ? centeredText(introLayer, 'sub', intro.subtitle) : null;
+  timeline.fromTo(introMark, { opacity: 0, y: 26, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.9, ease: 'springSoft', immediateRender: true }, 0.15);
+  if (introKicker) timeline.fromTo(introKicker, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: 'settle', immediateRender: true }, 0.4);
+  revealWords(timeline, introTitle, 0.5, { stagger: 0.07, duration: 0.9 });
+  if (introSub) timeline.fromTo(introSub, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.8, ease: 'settle', immediateRender: true }, 1.05);
+  const introExit = intro.duration - 0.85;
+  hideWords(timeline, introTitle, introExit);
+  timeline.to([introMark, introKicker, introSub].filter(Boolean), { opacity: 0, y: -24, duration: 0.4, ease: 'exit', stagger: 0.04 }, introExit);
+  timeline.set(introLayer, { visibility: 'hidden' }, intro.duration);
+
+  camera.track.to({ ...fullPose, zoom: fullPose.zoom * 0.9, ...HERO_TILT }, 0, 0);
+  timeline.fromTo(win, { y: 820, rotationX: 46, scale: 0.8, opacity: 0 }, { y: 0, rotationX: 0, scale: 1, opacity: 1, duration: 1.6, ease: 'springSoft', immediateRender: true }, intro.duration - 0.6);
+
+  // ---- Beats: one camera take across the product
+  const cuts = [0], qaTimes = [Math.min(1.8, intro.duration - 1)], sceneNames = ['intro'];
+  let beatStart = intro.duration;
+  let previousScreen = null;
+  let cursorShown = false;
+  story.beats.forEach((beat, index) => {
+    const screen = screens[beat.screen];
+    if (!screen) throw new Error(`Beat ${index + 1} uses unknown screen "${beat.screen}"`);
+    cuts.push(beatStart);
+    sceneNames.push(`${beat.screen}-${index + 1}`);
+    qaTimes.push(beatStart + Math.max(1.2, beat.duration - 0.8));
+
+    if (screen !== previousScreen) {
+      // The first screen is set directly: a zero-duration tween at time 0 is not guaranteed to render on seek(0).
+      if (!previousScreen) screen.element.style.opacity = '1';
+      else {
+        timeline.fromTo(screen.element, { opacity: 0, scale: 1.014 }, { opacity: 1, scale: 1, duration: 0.34, ease: 'settle', immediateRender: false }, beatStart);
+        timeline.set(previousScreen.element, { opacity: 0 }, beatStart + 0.34);
+      }
+      urlChanges.push([previousScreen ? beatStart : -1, screen.url ?? '']);
+      previousScreen = screen;
+    }
+
+    for (const step of beat.scroll ?? []) {
+      const target = typeof step.to === 'number' ? step.to : pageRect(screen, step.to).y - 140;
+      const limit = Math.max(0, screen.pageHeight - viewport.height);
+      screen.scroll.to({ y: Math.min(limit, Math.max(0, target)) }, beatStart + step.at, step.duration ?? 1.1, 'glide');
+    }
+
+    for (const key of beat.camera ?? []) {
+      const at = beatStart + key.at;
+      const duration = key.duration ?? 1.3;
+      const framed = key.focus === 'full' ? fullPose : camera.frame(worldRect(screen, key.focus, at + duration), key.fill ?? 0.6, MAX_ZOOM);
+      const frame = { ...framed, y: framed.y + CAPTION_LIFT / framed.zoom };
+      const [tiltX, tiltY] = key.tilt ?? [0, 0];
+      camera.moveTo({ ...frame, tiltX, tiltY, roll: key.roll ?? 0 }, at, duration, { ease: key.ease ?? 'glide', dip: key.dip ?? 0 });
+    }
+
+    for (const move of beat.cursor ?? []) {
+      const at = beatStart + move.at;
+      const duration = move.duration ?? 0.9;
+      const rect = worldRect(screen, move.to, at + duration);
+      const [anchorX, anchorY] = move.anchor ?? [0.5, 0.5];
+      if (!cursorShown) { cursor.show(at - 0.15); cursorShown = true; }
+      cursor.moveTo({ x: rect.x + rect.width * anchorX, y: rect.y + rect.height * anchorY }, at, duration);
+      if (move.click) cursor.click(at + duration + 0.05);
+    }
+
+    for (const highlight of beat.highlight ?? []) {
+      const at = beatStart + highlight.at;
+      const box = pageRect(screen, highlight.box);
+      const pad = highlight.pad ?? 10;
+      const scrollY = screen.scroll.at(at).y;
+      const top = (box.y - scrollY) * pageScale - pad;
+      const spot = make('div', 'spot', spots, { left: `${box.x * pageScale - pad}px`, top: `${top}px`, width: `${box.width * pageScale + pad * 2}px`, height: `${box.height * pageScale + pad * 2}px` });
+      if (highlight.label) {
+        const label = make('span', '', spot, top < 70 ? { top: 'calc(100% + 12px)' } : { bottom: 'calc(100% + 12px)' }, highlight.label);
+        copy.push(highlight.label);
+        timeline.fromTo(label, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: 'settle', immediateRender: true }, at + 0.18);
+      }
+      timeline.fromTo(spot, { opacity: 0, scale: 1.07 }, { opacity: 1, scale: 1, duration: 0.55, ease: 'settle', immediateRender: false }, at);
+      timeline.to(spot, { opacity: 0, duration: 0.3, ease: 'glide' }, at + (highlight.duration ?? 2.2));
+    }
+
+    if (beat.title) {
+      const card = make('div', 'card', hud);
+      const title = make('h2', '', card, null, beat.title);
+      const caption = beat.caption ? make('p', '', card, null, beat.caption) : null;
+      checkedTexts.push(card);
+      copy.push(beat.title, ...(beat.caption ? [beat.caption] : []));
+      const words = splitWords(title);
+      timeline.fromTo(card, { opacity: 0, y: 34, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'springSoft', immediateRender: false }, beatStart + 0.2);
+      revealWords(timeline, words, beatStart + 0.3, { stagger: 0.045, duration: 0.7 });
+      if (caption) timeline.fromTo(caption, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: 'settle', immediateRender: true }, beatStart + 0.6);
+      timeline.to(card, { opacity: 0, y: -18, scale: 0.98, duration: 0.3, ease: 'exit' }, beatStart + beat.duration - 0.25);
+    }
+    beatStart += beat.duration;
+  });
+
+  // ---- Outro: the product recedes and the brand closes
+  const outroAt = beatStart;
+  const outro = story.outro;
+  const total = outroAt + outro.duration;
+  cuts.push(outroAt);
+  sceneNames.push('outro');
+  qaTimes.push(total - 0.1);
+  cursor.hide(outroAt - 0.1);
+  camera.moveTo({ ...fullPose, zoom: fullPose.zoom * 0.8, tiltX: 12, tiltY: 10 }, outroAt, 1.5, { ease: 'glide' });
+  timeline.to(win, { y: 150, opacity: 0, filter: 'blur(16px)', duration: 0.95, ease: 'glide' }, outroAt + 0.15);
+  const outroLayer = make('div', 'center', hud, { top: '0', height: `${H}px`, justifyContent: 'center', gap: '28px', visibility: 'hidden' });
+  const outroMark = brandMark(outroLayer, 96);
+  const outroTitle = splitWords(centeredText(outroLayer, 'headline', outro.title, { fontSize: '80px' }));
+  const outroSub = outro.subtitle ? centeredText(outroLayer, 'sub', outro.subtitle) : null;
+  timeline.set(outroLayer, { visibility: 'visible' }, outroAt + 0.5);
+  timeline.fromTo(outroMark, { opacity: 0, scale: 0.7, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 1, ease: 'spring', immediateRender: true }, outroAt + 0.6);
+  revealWords(timeline, outroTitle, outroAt + 0.85, { stagger: 0.06, duration: 0.9 });
+  if (outroSub) timeline.fromTo(outroSub, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'settle', immediateRender: true }, outroAt + 1.3);
+  timeline.set({}, {}, total);
+
+  window.seek = (time) => {
+    timeline.seek(time, false);
+    const view3d = camera.apply(time);
+    cursor.apply(time, view3d.zoom);
+    for (const screen of Object.values(screens)) screen.image.style.transform = `translateY(${(-screen.scroll.at(time).y * pageScale).toFixed(2)}px)`;
+    let currentUrl = '';
+    for (const [at, value] of urlChanges) if (time >= at + 0.15) currentUrl = value;
+    if (url.textContent !== currentUrl) url.textContent = currentUrl;
+    // Light follows the tilt: the sheen slides across the glass and the shadow falls away from it.
+    sheen.style.transform = `translateX(${(view3d.tiltY * -3.2).toFixed(2)}%)`;
+    win.style.setProperty('--sx', `${(view3d.tiltY * -3.4).toFixed(2)}px`);
+    win.style.setProperty('--sy', `${(36 + view3d.tiltX * 3).toFixed(2)}px`);
+    const panX = view3d.x - W / 2, panY = view3d.y - H / 2;
+    for (const blob of blobs) {
+      const x = blob.anchor[0] + Math.sin(time * 0.21 + blob.phase) * 90 - panX * blob.depth;
+      const y = blob.anchor[1] + Math.cos(time * 0.17 + blob.phase) * 70 - panY * blob.depth;
+      blob.element.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) scale(${(1 + Math.sin(time * 0.13 + blob.phase) * 0.08).toFixed(4)})`;
+    }
+    dots.style.transform = `translate(${(-panX * 0.06).toFixed(2)}px,${(-panY * 0.06).toFixed(2)}px)`;
+  };
+
+  function isVisible(element) {
+    for (let node = element; node && node !== stage; node = node.parentElement) {
+      const css = getComputedStyle(node);
+      if (css.visibility === 'hidden' || Number(css.opacity) < 0.05) return false;
+    }
+    return true;
+  }
+  window.qaCheck = () => {
+    const issues = [];
+    for (const element of checkedTexts) {
+      if (!isVisible(element)) continue;
+      const rect = element.getBoundingClientRect();
+      const name = element.textContent.slice(0, 40);
+      if (rect.left < SAFE.left - 1 || rect.right > SAFE.right + 1 || rect.top < SAFE.top - 1 || rect.bottom > SAFE.bottom + 1) issues.push(`Outside safe area: "${name}"`);
+      if (element.scrollWidth > element.clientWidth + 12) issues.push(`Overflow: "${name}"`);
+    }
+    return issues;
+  };
+  window.meta = {
+    W, H, theme: style.theme, style: plan.style, post: style.post, music: plan.music ?? style.audio.music, bpm: plan.bpm ?? style.audio.bpm, audio: plan.audio,
+    duration: total, fps: plan.fps, outFps: plan.outFps, shutter: plan.shutter, output: plan.output, cuts, qaTimes, scenes: sceneNames, copy,
+  };
+  window.seek(0);
+  return true;
+}
+window.ready = main();
+</script></body></html>

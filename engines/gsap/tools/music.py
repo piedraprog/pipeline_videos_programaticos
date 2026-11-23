@@ -1,5 +1,5 @@
 # Usage: python3 tools/music.py meta.json out.wav
-# Beat-locked music bed synthesized in code. Style from meta["music"]: cinematic | corporate | punchy | minimal | playful.
+# Beat-locked music bed synthesized in code. Style from meta["music"]: cinematic | corporate | executive | punchy | minimal | playful.
 # Every scene cut gets an accent (hit/chime/stab) on the beat.
 import sys,json,wave,numpy as np
 m=json.load(open(sys.argv[1],encoding='utf-8'));sr=48000;D=m['duration'];bpm=m['bpm'];beat=60/bpm;n=int(sr*D);t=np.arange(n)/sr
@@ -48,6 +48,19 @@ elif style=='corporate':
         c=ch[i%4];add(pad(c,bar,.07),i*bar)
         for k in range(4):x=X(.4);add(np.sin(2*np.pi*mf(c[0]-24)*x)*np.exp(-x*6)*.3,i*bar+k*beat)
     for c in cuts:add(chime(mf(84)),c,.18);add(riser(min(.6,beat)),c-min(.6,beat),.12)
+elif style=='executive':
+    # Restrained underscore for enterprise pieces: minor progression (Dm7 Bbmaj7 F C), muted eighth-note pulse, sub bass. No claps or chimes.
+    ch=[[50,53,57,60],[46,50,53,57],[41,45,48,53],[48,52,55,60]]
+    for b in range(nb):
+        s=b*beat;c=ch[int(s//bar)%4]
+        if b%2==0 and not(outro<=s<outro+1):add(kick(42,70,.2)*.55,s,.6)
+        add(hat(.008),s+beat/2,.06,.25)
+        for k in range(2):add(pluck(mf(c[(0,2,1,2)[(b*2+k)%4]]+12),.22,22,.15),s+k*beat/2,.11,(-.25 if k else .25))
+    for i in range(int(np.ceil(D/bar))):
+        c=ch[i%4];add(pad(c,bar,.09),i*bar);x=X(bar)
+        add(np.sin(2*np.pi*mf(c[0]-12)*x)*np.minimum(x/.05,1)*np.minimum((bar-x)/.2,1)*.22,i*bar)
+        add(piano(mf(c[3]+12)),i*bar+2*beat,.06,.2)
+    for c in cuts:add(riser(min(.8,2*beat)),c-min(.8,2*beat),.1);x=X(1.2);add(np.sin(2*np.pi*55*x)*np.exp(-x*4),c,.25)
 elif style=='punchy':
     ch=[[57,60,64],[57,60,64],[53,57,60],[55,59,62]]
     for b in range(nb):

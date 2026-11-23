@@ -1,0 +1,16 @@
+{
+  "stock": {
+    "x": 980.109375,
+    "y": 466.46875,
+    "width": 66.890625,
+    "height": 25,
+    "text": "8 available"
+  },
+  "add": {
+    "x": 393,
+    "y": 650.25,
+    "width": 654,
+    "height": 50,
+    "text": "Add to bag ＋"
+  }
+}

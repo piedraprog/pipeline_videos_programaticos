@@ -1,0 +1,16 @@
+{
+  "name": "soft-depth",
+  "description": "Product walkthrough for desktop apps: a browser window floating in soft light, one continuous camera take with tilt and parallax, a curved cursor, spotlights and frosted caption cards. Colors are neutral defaults; a brand overrides them with brand.demoColors.",
+  "template": "demo",
+  "theme": "light",
+  "colors": {
+    "bg": "#f4f5f8", "glows": ["#c9d8ff", "#ffd9c2", "#d6f5e3"], "dots": "rgba(16,24,40,.07)", "vignette": "rgba(16,24,40,.16)",
+    "text": "#0f1728", "muted": "#5b6577", "accent": "#2f6bff", "accentText": "#ffffff",
+    "card": "rgba(255,255,255,.8)", "cardLine": "rgba(255,255,255,.7)", "cardText": "#0f1728", "cardMuted": "#566072",
+    "dim": "rgba(10,18,34,.42)", "shadow": "rgba(10,18,34,.36)"
+  },
+  "background": { "glow": 0.7 },
+  "fonts": { "display": { "family": "Inter", "src": "engines/gsap/fonts/Inter.ttf" } },
+  "post": { "glowPass": false, "noise": 2 },
+  "audio": { "music": "minimal", "bpm": 104 }
+}

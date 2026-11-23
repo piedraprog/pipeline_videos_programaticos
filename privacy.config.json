@@ -1,6 +1,23 @@
 {
-  "publicBrands": ["selltly", "monumental"],
-  "publicAssetDirs": ["brands/selltly", "brands/monumental", "demos", "engines/gsap/fonts"],
-  "allowedEmailDomains": ["example.com", "example.org", "users.noreply.github.com"],
-  "skipContent": ["bun.lock", "tests/privacy-check.test.ts"]
+  "publicBrands": [
+    "form",
+    "selltly",
+    "monumental"
+  ],
+  "publicAssetDirs": [
+    "brands/form",
+    "brands/selltly",
+    "brands/monumental",
+    "demos",
+    "engines/gsap/fonts"
+  ],
+  "allowedEmailDomains": [
+    "example.com",
+    "example.org",
+    "users.noreply.github.com"
+  ],
+  "skipContent": [
+    "bun.lock",
+    "tests/privacy-check.test.ts"
+  ]
 }
