@@ -41,6 +41,8 @@ const HERO_TILT = { tiltX: 8, tiltY: -11 };
 // Targets sit slightly above center so the caption card rarely covers what the camera is looking at.
 const CAPTION_LIFT = 46;
 const MAX_ZOOM = 1.85;
+// How much backdrop may show past a window edge while the camera is zoomed in (screen px).
+const EDGE_MARGIN = 90;
 
 async function loadJson(file) {
   const response = await fetch(ROOT + file);
@@ -161,6 +163,17 @@ async function main() {
     return { x: windowRect.x + box.x * pageScale, y: windowRect.y + CHROME_HEIGHT + (box.y - scrollY) * pageScale, width: box.width * pageScale, height: box.height * pageScale };
   }
   const fullPose = { ...camera.frame(windowRect, 0.88), tiltX: 0, tiltY: 0 };
+  // A tall or off-center target must not shrink the window or push it to one side of the frame:
+  // the camera never pulls back past the overview and never looks beyond the window edges.
+  function keepWindowInFrame(pose) {
+    const zoom = Math.max(pose.zoom, fullPose.zoom);
+    const clampAxis = (value, start, size, frameSize) => {
+      const reach = frameSize / (2 * zoom) - EDGE_MARGIN / zoom;
+      const min = start + reach, max = start + size - reach;
+      return min > max ? start + size / 2 : Math.min(max, Math.max(min, value));
+    };
+    return { ...pose, zoom, x: clampAxis(pose.x, windowRect.x, windowRect.width, W), y: clampAxis(pose.y, windowRect.y, windowRect.height, H) };
+  }
 
   function centeredText(parent, className, text, css) {
     const element = make('div', className, parent, css, text);
@@ -228,7 +241,7 @@ async function main() {
       const at = beatStart + key.at;
       const duration = key.duration ?? 1.3;
       const framed = key.focus === 'full' ? fullPose : camera.frame(worldRect(screen, key.focus, at + duration), key.fill ?? 0.6, MAX_ZOOM);
-      const frame = { ...framed, y: framed.y + CAPTION_LIFT / framed.zoom };
+      const frame = keepWindowInFrame({ ...framed, y: framed.y + CAPTION_LIFT / framed.zoom });
       const [tiltX, tiltY] = key.tilt ?? [0, 0];
       camera.moveTo({ ...frame, tiltX, tiltY, roll: key.roll ?? 0 }, at, duration, { ease: key.ease ?? 'glide', dip: key.dip ?? 0 });
     }
