@@ -1,0 +1,10 @@
+{
+  "name": "corporate-system",
+  "description": "Quiet information architecture: ivory canvas, charcoal typography, square signal cards and fine wine linework. No devices, gradients or fictional data.",
+  "theme": "light",
+  "colors": {"background": "#f6f3ed", "surface": "#fffdf9", "text": "#242326", "muted": "#625e61", "line": "#d8d1cc"},
+  "fonts": {"family": "Inter", "src": "engines/gsap/fonts/Inter.ttf"},
+  "motion": {"ease": "power2.inOut", "reveal": 0.65, "distance": 22},
+  "post": {"glowPass": false, "noise": 0},
+  "audio": {"music": "minimal", "bpm": 100}
+}
