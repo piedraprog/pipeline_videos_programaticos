@@ -1,5 +1,6 @@
 // Draft narration for a rendered demo plan.
-// Usage: bun run voice -- <plan>.json [--provider=elevenlabs|openai] [--list-voices]
+// Usage: bun run voice -- <plan>.json [--provider=elevenlabs|openai] [--check] [--list-voices]
+// --check synthesizes and times the lines against the plan after a --qa-only render, before spending a full render.
 // Reads the `say` lines of the plan, synthesizes each one, checks it fits its scene, and muxes
 // voice + ducked music onto the existing render as <name>-voz.mp4. Keys come from .env.
 import { createHash } from 'node:crypto';
@@ -21,6 +22,7 @@ const PROVIDERS = {
 };
 
 // One narration line per scene, in the order the template lays them out: intro, beats, outro.
+// A line may keep talking over the silent scenes that follow it; it must end before the next narrated one.
 export function collectLines(plan, meta) {
   const story = plan.story;
   const scenes = [story.intro, ...story.beats, story.outro];
@@ -28,7 +30,8 @@ export function collectLines(plan, meta) {
   const lines = [];
   scenes.forEach((scene, index) => {
     if (!scene.say) return;
-    const sceneEnd = meta.cuts[index + 1] ?? meta.duration;
+    const nextNarrated = scenes.findIndex((later, laterIndex) => laterIndex > index && later.say);
+    const sceneEnd = nextNarrated === -1 ? meta.duration : meta.cuts[nextNarrated];
     lines.push({ scene: meta.scenes[index], text: scene.say, at: meta.cuts[index] + LEAD_IN_SECONDS, sceneEnd });
   });
   return lines;
@@ -148,7 +151,9 @@ async function main() {
   const name = path.basename(plan.output);
   const video = path.join(outputDir, `${name}.mp4`);
   const metaPath = path.join(outputDir, 'meta.json');
-  if (!fs.existsSync(video) || !fs.existsSync(metaPath)) throw new Error(`Render the plan first: ${video} or meta.json is missing`);
+  const checkOnly = process.argv.includes('--check');
+  if (!fs.existsSync(metaPath)) throw new Error(`Run the render with --qa-only first: ${metaPath} is missing`);
+  if (!checkOnly && !fs.existsSync(video)) throw new Error(`Render the plan first: ${video} is missing (or use --check)`);
   const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
 
   const lines = collectLines(plan, meta);
@@ -176,9 +181,10 @@ async function main() {
   console.log(marks.join('\n'));
   const overflows = findOverflows(lines);
   if (overflows.length > 0) {
-    throw new Error(`These lines run past their scene; shorten the line or lengthen the beat:\n${overflows.map((line) => `- ${line.scene}: ${(line.at + line.duration + TAIL_SECONDS - line.sceneEnd).toFixed(2)} s over (includes a ${TAIL_SECONDS} s tail)`).join('\n')}`);
+    throw new Error(`These lines run into the next narrated scene; shorten the line or lengthen the beat:\n${overflows.map((line) => `- ${line.scene}: ${(line.at + line.duration + TAIL_SECONDS - line.sceneEnd).toFixed(2)} s over (includes a ${TAIL_SECONDS} s tail)`).join('\n')}`);
   }
 
+  if (checkOnly) return console.log('Every line fits its scene.');
   // Rebuilt on every run so a new plan.musicFile or plan.music applies without rendering the picture again.
   const music = meta.audio === 'none' ? null : prepareMusic({ root: ROOT, plan, meta, outputDir });
   const output = path.join(outputDir, `${name}-voz-${voice.provider}.mp4`);

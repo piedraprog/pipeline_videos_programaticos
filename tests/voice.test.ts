@@ -11,9 +11,9 @@ const plan = {
 };
 const meta = { cuts: [0, 3, 8, 12], scenes: ['intro', 'a-1', 'b-2', 'outro'], duration: 15 };
 
-test('each narration line starts shortly after its scene begins and scenes without a line are skipped', () => {
+test('each narration line starts shortly after its scene begins and may run until the next narrated scene', () => {
   expect(collectLines(plan, meta)).toEqual([
-    { scene: 'intro', text: 'Hola.', at: 0.4, sceneEnd: 3 },
+    { scene: 'intro', text: 'Hola.', at: 0.4, sceneEnd: 8 },
     { scene: 'b-2', text: 'Segunda pantalla.', at: 8.4, sceneEnd: 12 },
     { scene: 'outro', text: 'Cierre.', at: 12.4, sceneEnd: 15 },
   ]);
