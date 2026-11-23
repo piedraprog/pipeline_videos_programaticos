@@ -1,0 +1,92 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Transparent graphic overlay</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow:hidden;background:transparent}
+#stage{position:relative;overflow:hidden;background:transparent}
+.abs{position:absolute}
+.mask{position:absolute;overflow:hidden;padding:.06em .04em .02em;white-space:nowrap}
+.in{display:inline-block;white-space:nowrap}
+</style></head><body><div id="stage"></div>
+<script src="lib/gsap.min.js"></script>
+<script>
+// Transparent overlay template (alpha output). Story text comes from plan.story; timings are fixed per section in plan.story.*.at.
+const q=new URLSearchParams(location.search);
+const $=(tag,cls,parent,style,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(style)Object.assign(e.style,style);if(txt!=null)e.textContent=txt;if(parent)parent.appendChild(e);return e};
+async function main(){
+const root='../../';
+const plan=await (await fetch(root+q.get('plan'))).json();
+const brand=await (await fetch(root+plan.brand)).json();
+const S=plan.story,P=brand.palette,F=brand.fonts;
+const W=1080,H=1920,safe={l:W*.08,r:W*.92,t:H*.09,b:H*.88};const SW=safe.r-safe.l;
+document.head.appendChild(Object.assign(document.createElement('style'),{textContent:`@font-face{font-family:Disp;src:url(${root+F.display.src}) format("truetype")}@font-face{font-family:Ui;src:url(${root+F.ui.src}) format("truetype");font-weight:100 900}`}));
+await document.fonts.load('100px Disp');await document.fonts.load('600 100px Ui');
+const st=document.getElementById('stage');Object.assign(st.style,{width:W+'px',height:H+'px',color:'#fff'});document.body.style.width=W+'px';document.body.style.height=H+'px';
+const SH=brand.shadow||'0 4px 14px rgba(0,0,0,.45)';
+const tl=gsap.timeline({paused:true,defaults:{ease:'power4.out'}});
+const textEls=[],cuts=[],qaTimes=[],names=[];
+// a masked line: text slides inside a clip box; auto-fits to the safe width
+const line=(txt,{size,y,color='#fff',font='Disp',weight=400,track=.01,maxW=SW})=>{const m=$('div','mask',st,{top:y+'px'});const i=$('span','in',m,{fontFamily:font,fontWeight:weight,fontSize:size+'px',letterSpacing:track+'em',lineHeight:1.02,color,textShadow:SH},txt);
+  let fs=size;while(m.offsetWidth>maxW&&fs>14){fs*=.96;i.style.fontSize=fs+'px'}m.style.left=W/2-m.offsetWidth/2+'px';textEls.push(m);m._i=i;return m};
+const inUp=(m,at,d=.6)=>tl.fromTo(m._i,{yPercent:115},{yPercent:0,duration:d,ease:'power4.out',immediateRender:true},at);
+const outUp=(m,at,d=.4)=>tl.to(m._i,{yPercent:-115,duration:d,ease:'power3.in'},at);
+const section=(name,a)=>{cuts.push(a);names.push(name)};
+const CY=H*.47;
+// 1) hook
+{const s=S.hook;section('hook',s.at);const a=line(s.lines[0],{size:190,y:CY-150}),b=line(s.lines[1],{size:190,y:CY-150}),sm=line(s.small,{size:44,y:CY+90,font:'Ui',weight:600,track:.02,color:'#fff'});
+ inUp(a,s.at+.2);outUp(a,s.at+2.3);inUp(b,s.at+2.55);outUp(b,s.at+4.55);
+ tl.fromTo(sm,{opacity:0,y:20},{opacity:1,y:0,duration:.6,immediateRender:true},s.at+1.0);tl.to(sm,{opacity:0,y:-10,duration:.35,ease:'power3.in'},s.at+4.55);qaTimes.push(s.at+3.4)}
+// 2) season close: navy band + big years + corner logo
+{const s=S.season;section('season',s.at);const bandH=170,by=CY-260;
+ const band=$('div','abs',st,{left:0,top:by+'px',width:W+'px',height:bandH+'px',background:P.navy,transformOrigin:'0 50%',boxShadow:'0 10px 30px rgba(0,0,0,.35)'});
+ const acc=$('div','abs',st,{left:0,top:by+bandH+'px',width:W+'px',height:'12px',background:P.wine,transformOrigin:'100% 50%'});
+ const t=line(s.band,{size:104,y:by+26,track:.03});
+ const big=line(s.big,{size:260,y:by+bandH+60,track:0});
+ const logo=$('img','abs',st,{width:'250px',left:safe.r-250+'px',top:safe.t+10+'px',filter:'drop-shadow(0 6px 16px rgba(0,0,0,.4))'});logo.src=root+brand.logo.full;
+ tl.fromTo(band,{scaleX:0},{scaleX:1,duration:.7,ease:'expo.out',immediateRender:true},s.at+.05);tl.fromTo(acc,{scaleX:0},{scaleX:1,duration:.7,ease:'expo.out',immediateRender:true},s.at+.25);
+ inUp(t,s.at+.4,.7);inUp(big,s.at+.9,.8);tl.fromTo(big._i,{scale:1.06},{scale:1,duration:6,ease:'sine.out',immediateRender:false},s.at+.9);
+ tl.fromTo(logo,{opacity:0,y:-30,scale:.9},{opacity:1,y:0,scale:1,duration:.7,ease:'back.out(1.6)',immediateRender:true},s.at+.6);
+ const e=s.at+7.4;outUp(t,e);outUp(big,e+.05);tl.to(band,{scaleX:0,transformOrigin:'100% 50%',duration:.5,ease:'expo.in'},e+.1);tl.to(acc,{scaleX:0,duration:.45,ease:'expo.in'},e);tl.to(logo,{opacity:0,y:-20,duration:.4,ease:'power2.in'},e);qaTimes.push(s.at+4)}
+// 3) question
+{const s=S.question;section('question',s.at);const a=line(s.lines[0],{size:170,y:CY-200}),b=line(s.lines[1],{size:230,y:CY-20});
+ inUp(a,s.at+.15);inUp(b,s.at+.4,.7);outUp(a,s.at+4.55);outUp(b,s.at+4.6);qaTimes.push(s.at+2.5)}
+// 4) values hitting one by one
+{const s=S.values;section('values',s.at);const ys=[CY-340,CY-100,CY+140];
+ s.words.forEach((w,i)=>{const m=line(w,{size:200,y:ys[i],color:i===s.words.length-1?P.wine:'#fff'});if(i===s.words.length-1)m._i.style.textShadow='0 4px 14px rgba(0,0,0,.45),0 0 2px rgba(255,255,255,.6)';
+   const at=s.at+.2+i*1.4;tl.fromTo(m._i,{scale:1.5,opacity:0},{scale:1,opacity:1,duration:.45,ease:'back.out(2)',immediateRender:true},at);tl.fromTo(m,{x:-8},{x:0,duration:.3,ease:'power2.out',immediateRender:false},at+.2);
+   outUp(m,s.at+5.45+i*.05)});qaTimes.push(s.at+4.6)}
+// 5) journey + baseball stitch line
+{const s=S.journey;section('journey',s.at);const a=line(s.lines[0],{size:150,y:CY-220}),b=line(s.lines[1],{size:150,y:CY-60});
+ const ns='http://www.w3.org/2000/svg';const svg=document.createElementNS(ns,'svg');svg.setAttribute('width',W);svg.setAttribute('height',260);Object.assign(svg.style,{position:'absolute',left:0,top:CY+140+'px',overflow:'visible',filter:'drop-shadow(0 3px 6px rgba(0,0,0,.4))'});st.appendChild(svg);
+ const x0=safe.l+20,x1=safe.r-20,yb=70;const pathD=`M${x0} ${yb} Q ${W/2} ${yb+120} ${x1} ${yb}`;
+ const pth=document.createElementNS(ns,'path');Object.entries({d:pathD,fill:'none',stroke:'#fff','stroke-width':6,'stroke-linecap':'round'}).forEach(([k,v])=>pth.setAttribute(k,v));svg.appendChild(pth);
+ const L=pth.getTotalLength();pth.setAttribute('stroke-dasharray',L);pth.setAttribute('stroke-dashoffset',L);
+ const stitches=[];for(let k=1;k<16;k++){const p=pth.getPointAtLength(L*k/16),p2=pth.getPointAtLength(L*k/16+1);const ang=Math.atan2(p2.y-p.y,p2.x-p.x)*180/Math.PI;
+   const g=document.createElementNS(ns,'g');g.setAttribute('transform',`translate(${p.x} ${p.y}) rotate(${ang})`);
+   [-1,1].forEach(sd=>{const l=document.createElementNS(ns,'path');l.setAttribute('d',`M -9 ${sd*24} L 9 ${sd*10}`);Object.entries({stroke:P.wine,'stroke-width':6,'stroke-linecap':'round',fill:'none'}).forEach(([kk,v])=>l.setAttribute(kk,v));g.appendChild(l)});svg.appendChild(g);stitches.push(g)}
+ inUp(a,s.at+.15);inUp(b,s.at+.4);tl.to(pth,{attr:{'stroke-dashoffset':0},duration:1.4,ease:'power2.inOut'},s.at+.9);
+ stitches.forEach((g,k)=>tl.fromTo(g,{opacity:0},{opacity:1,duration:.12,immediateRender:true},s.at+.95+k*1.35/16));
+ outUp(a,s.at+5.5);outUp(b,s.at+5.55);tl.to(svg,{opacity:0,duration:.35,ease:'power2.in'},s.at+5.55);qaTimes.push(s.at+3)}
+// 6) back to it + next season with fire accent
+{const s=S.next;section('next',s.at);const a=line(s.lines[0],{size:190,y:CY-300}),b=line(s.lines[1],{size:190,y:CY-110});
+ const pill=$('div','abs',st,{top:CY+140+'px',height:'120px',borderRadius:'12px',background:`linear-gradient(90deg,${P.fireOrange},${P.fireYellow})`,boxShadow:'0 10px 28px rgba(0,0,0,.35)',transformOrigin:'0 50%'});
+ const t=line(s.season,{size:84,y:CY+152,color:P.navy,track:.03});t._i.style.textShadow='none';
+ const pw=t.offsetWidth+70;Object.assign(pill.style,{left:W/2-pw/2+'px',width:pw+'px'});st.appendChild(t);
+ inUp(a,s.at+.15);inUp(b,s.at+.35);tl.fromTo(pill,{scaleX:0},{scaleX:1,duration:.6,ease:'expo.out',immediateRender:true},s.at+.8);inUp(t,s.at+1.05);
+ outUp(a,s.at+4.55);outUp(b,s.at+4.6);outUp(t,s.at+4.55);tl.to(pill,{scaleX:0,transformOrigin:'100% 50%',duration:.4,ease:'expo.in'},s.at+4.6);qaTimes.push(s.at+3)}
+// 7) future
+{const s=S.future;section('future',s.at);const a=line(s.lines[0],{size:150,y:CY-200}),b=line(s.lines[1],{size:150,y:CY-40}),c=line(s.then,{size:200,y:CY-120});
+ inUp(a,s.at+.1);inUp(b,s.at+.3);outUp(a,s.at+1.9);outUp(b,s.at+1.95);inUp(c,s.at+2.15);tl.fromTo(c._i,{scale:1.08},{scale:1,duration:1.6,ease:'sine.out',immediateRender:false},s.at+2.15);outUp(c,s.at+3.6);qaTimes.push(s.at+1.2)}
+// 8) lockup
+{const s=S.lockup;section('lockup',s.at);const lw=760,lh=lw*brand.logo.h/brand.logo.w;
+ const logo=$('img','abs',st,{width:lw+'px',left:W/2-lw/2+'px',top:CY-lh/2-120+'px',filter:'drop-shadow(0 10px 24px rgba(0,0,0,.45))'});logo.src=root+brand.logo.full;
+ const tg=line(s.tagline,{size:46,y:CY-120+lh/2+40,font:'Ui',weight:700,track:0});
+ tl.fromTo(logo,{opacity:0,scale:.7,y:40},{opacity:1,scale:1,y:0,duration:.8,ease:'back.out(1.5)',immediateRender:true},s.at+.05);inUp(tg,s.at+.6,.7);qaTimes.push(s.at+2.4)}
+const total=plan.duration;tl.set({},{},total);
+window.seek=t=>tl.seek(t,false);
+window.qaCheck=()=>{const issues=[];const vis=e=>{for(let n=e;n&&n!==st;n=n.parentElement){const cs=getComputedStyle(n);if(cs.visibility==='hidden'||+cs.opacity<.05)return false}return true};
+  for(const e of textEls){if(!vis(e))continue;const r=e._i.getBoundingClientRect(),mr=e.getBoundingClientRect();if(r.bottom<mr.top+2||r.top>mr.bottom-2)continue;
+   if(mr.left<safe.l-1||mr.right>safe.r+1||mr.top<safe.t-1||mr.bottom>safe.b+1)issues.push(`"${e.textContent.slice(0,30)}" outside safe area [${mr.left|0},${mr.top|0},${mr.right|0},${mr.bottom|0}]`)}return issues};
+window.meta={W,H,theme:'dark',style:plan.style||'overlay',alpha:true,audio:'none',post:{glowPass:false,noise:0},music:'none',copy:textEls.map(e=>e.textContent),duration:total,cuts,qaTimes,bpm:120,fps:plan.fps,outFps:plan.outFps,output:plan.output,scenes:names};
+await Promise.all([...document.images].map(i=>i.decode()));seek(0);return true}
+window.ready=main();
+</script></body></html>
