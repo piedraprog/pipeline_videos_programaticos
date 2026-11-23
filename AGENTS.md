@@ -127,7 +127,8 @@ Synthetic voice is allowed only as an internal draft (see Delivery rules). It ne
 2. Write one `say` line per scene in the plan (`story.intro.say`, `story.beats[].say`, `story.outro.say`) and a `voice` block: `{"provider": "elevenlabs", "elevenlabs": {"voiceId": "..."}, "openai": {"voiceId": "cedar", "instructions": "..."}}`. `bun run voice -- --list-voices` prints the ElevenLabs voices of the account.
 3. Render the plan first, then `bun run voice -- <plan>.json [--provider=openai]`. Each line starts 0.4 s into its scene. The command fails if a line would still be talking when its scene ends: shorten the line or lengthen the beat, then render again.
 4. Output: `<output>/<name>-voz-<provider>.mp4` (voice over ducked music, video untouched) and `marcas-de-tiempo.txt`. Audio is cached per line in `<output>/voice/`, so rerunning costs nothing unless the text or voice changed.
-5. The narration goes through the same forbidden-messaging gate as on-screen copy. OpenAI's usage policy requires telling listeners the voice is AI-generated.
+5. Music: `"musicFile": "<path>"` in the plan uses that track instead of the synthesized bed (looped or cut to length, faded in and out). Keep licensed or client tracks under `private/`. `bun run voice` rebuilds the music on every run, so changing `musicFile` or `music` does not need a new picture render. The `executive` bed has no cut accents.
+6. The narration goes through the same forbidden-messaging gate as on-screen copy. OpenAI's usage policy requires telling listeners the voice is AI-generated.
 
 ## Public repository: private work goes in `private/`
 

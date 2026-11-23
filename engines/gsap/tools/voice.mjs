@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FF } from './bin.mjs';
+import { prepareMusic } from './music.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const LEAD_IN_SECONDS = 0.4;
@@ -165,9 +166,10 @@ async function main() {
     throw new Error(`These lines run past their scene; shorten the line or lengthen the beat:\n${overflows.map((line) => `- ${line.scene}: ${(line.at + line.duration + TAIL_SECONDS - line.sceneEnd).toFixed(2)} s over (includes a ${TAIL_SECONDS} s tail)`).join('\n')}`);
   }
 
-  const music = path.join(outputDir, 'music.wav');
+  // Rebuilt on every run so a new plan.musicFile or plan.music applies without rendering the picture again.
+  const music = meta.audio === 'none' ? null : prepareMusic({ root: ROOT, plan, meta, outputDir });
   const output = path.join(outputDir, `${name}-voz-${voice.provider}.mp4`);
-  mix({ video, music: fs.existsSync(music) ? music : null, lines, output });
+  mix({ video, music, lines, output });
   console.log(`Narrated draft: ${output}`);
 }
 

@@ -233,6 +233,8 @@ async function main() {
       camera.moveTo({ ...frame, tiltX, tiltY, roll: key.roll ?? 0 }, at, duration, { ease: key.ease ?? 'glide', dip: key.dip ?? 0 });
     }
 
+    // A pointer parked over the page reads as a mistake: it leaves during beats that do not use it.
+    if (!beat.cursor?.length && cursorShown) { cursor.hide(beatStart + 0.25); cursorShown = false; }
     for (const move of beat.cursor ?? []) {
       const at = beatStart + move.at;
       const duration = move.duration ?? 0.9;

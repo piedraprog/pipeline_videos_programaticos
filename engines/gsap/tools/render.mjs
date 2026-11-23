@@ -1,6 +1,6 @@
 // Usage: bun run render -- plans/<plan>.json [--qa-only] [--motion-check] [--workers=N]
 // plan.template: index (default, brand pieces) | stock (no-text stock clips) | whatsapp (chat recreation)
-import {FF,PY} from './bin.mjs';
+import {FF,PY} from './bin.mjs';import {prepareMusic} from './music.mjs';
 import {chromium} from 'playwright';
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';import os from 'node:os';
@@ -63,7 +63,7 @@ console.log(`STAGE frames: ${jobs.length} frames (${OPEN}/${SUB} sub-frames per 
 const IN_FPS=String(meta.outFps*OPEN);const MIX=`tmix=frames=${OPEN},select='not(mod(n+1\\,${OPEN}))',setpts=N/(${meta.outFps}*TB),fps=${meta.outFps}`;
 await b.close();srv.close();
 const silent=(meta.audio||'')==='none';let t1=Date.now();
-if(!silent){execFileSync(PY,[path.join(ROOT,'engines/gsap/tools/music.py'),path.join(out,'meta.json'),path.join(out,'music.wav')],{stdio:'inherit'});console.log(`STAGE music: ${((Date.now()-t1)/1000).toFixed(1)}s`)}
+if(!silent){prepareMusic({root:ROOT,plan,meta,outputDir:out});console.log(`STAGE music: ${((Date.now()-t1)/1000).toFixed(1)}s`)}
 if(ALPHA){ // transparent overlay: ProRes 4444 (main) + VP9 WebM with alpha, no audio
   const base=path.join(out,path.basename(plan.output));t1=Date.now();const blend=`format=rgba,${MIX}`;
   execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),'-vf',`${blend},format=yuva444p10le`,'-c:v','prores_ks','-profile:v','4444','-alpha_bits','16','-vendor','apl0','-pix_fmt','yuva444p10le',base+'.mov'],{stdio:'inherit'});
