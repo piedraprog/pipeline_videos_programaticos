@@ -50,20 +50,29 @@ const n=Math.round(meta.duration*meta.fps);const t0=Date.now();
 const wArg=process.argv.find(a=>a.startsWith('--workers='));const N=Math.max(1,+(wArg?.split('=')[1]||Math.min(6,Math.max(1,Math.floor(os.cpus().length/3)))));
 const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage({viewport:{width:W,height:H}});await open(q);pages.push(q)}
 let done=0;
-await Promise.all(pages.map(async(pg,w)=>{for(let i=w;i<n;i+=N){await pg.evaluate(t=>{seek(t)},i/meta.fps);await pg.screenshot({path:path.join(fd,`f${String(i).padStart(5,'0')}.png`),omitBackground:ALPHA});if(++done%120===0)console.log(`frame ${done}/${n}`)}}));
-console.log(`STAGE frames: ${n} frames, ${N} workers, ${((Date.now()-t0)/1000).toFixed(1)}s`);
+// Motion blur: meta.fps/meta.outFps sub-frames exist per output frame. With meta.shutter (degrees) only the
+// sub-frames inside the open shutter are captured and averaged, like a film camera. Without it, every
+// sub-frame is blended (legacy 360-degree behaviour).
+const SUB=Math.round(meta.fps/meta.outFps);const OPEN=meta.shutter?Math.max(1,Math.round(SUB*meta.shutter/360)):SUB;
+const jobs=[];for(let i=0;i<n;i++)if(i%SUB<OPEN)jobs.push(i);
+// Shutter renders capture several times more frames; JPEG encodes about 3x faster than PNG and the frames are averaged anyway.
+const EXT=!ALPHA&&meta.shutter?'jpg':'png';const SHOT=EXT==='jpg'?{type:'jpeg',quality:98}:{omitBackground:ALPHA};
+await Promise.all(pages.map(async(pg,w)=>{for(let j=w;j<jobs.length;j+=N){await pg.evaluate(t=>{seek(t)},jobs[j]/meta.fps);await pg.screenshot({path:path.join(fd,`f${String(j).padStart(5,'0')}.${EXT}`),...SHOT});if(++done%120===0)console.log(`frame ${done}/${jobs.length}`)}}));
+console.log(`STAGE frames: ${jobs.length} frames (${OPEN}/${SUB} sub-frames per output frame), ${N} workers, ${((Date.now()-t0)/1000).toFixed(1)}s`);
+// tmix output k mixes inputs k-OPEN+1..k, so keeping every OPEN-th one yields exactly one output frame per shutter window.
+const IN_FPS=String(meta.outFps*OPEN);const MIX=`tmix=frames=${OPEN},select='not(mod(n+1\\,${OPEN}))',setpts=N/(${meta.outFps}*TB),fps=${meta.outFps}`;
 await b.close();srv.close();
 const silent=(meta.audio||'')==='none';let t1=Date.now();
 if(!silent){execFileSync(PY,[path.join(ROOT,'engines/gsap/tools/music.py'),path.join(out,'meta.json'),path.join(out,'music.wav')],{stdio:'inherit'});console.log(`STAGE music: ${((Date.now()-t1)/1000).toFixed(1)}s`)}
 if(ALPHA){ // transparent overlay: ProRes 4444 (main) + VP9 WebM with alpha, no audio
-  const base=path.join(out,path.basename(plan.output));t1=Date.now();const blend=`format=rgba,tmix=frames=${Math.round(meta.fps/meta.outFps)},fps=${meta.outFps}`;
-  execFileSync(FF,['-y','-loglevel','error','-framerate',String(meta.fps),'-i',path.join(fd,'f%05d.png'),'-vf',`${blend},format=yuva444p10le`,'-c:v','prores_ks','-profile:v','4444','-alpha_bits','16','-vendor','apl0','-pix_fmt','yuva444p10le',base+'.mov'],{stdio:'inherit'});
-  execFileSync(FF,['-y','-loglevel','error','-framerate',String(meta.fps),'-i',path.join(fd,'f%05d.png'),'-vf',`${blend},format=yuva420p`,'-c:v','libvpx-vp9','-pix_fmt','yuva420p','-b:v','0','-crf','28','-row-mt','1','-auto-alt-ref','0',base+'.webm'],{stdio:'inherit'});
+  const base=path.join(out,path.basename(plan.output));t1=Date.now();const blend=`format=rgba,${MIX}`;
+  execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),'-vf',`${blend},format=yuva444p10le`,'-c:v','prores_ks','-profile:v','4444','-alpha_bits','16','-vendor','apl0','-pix_fmt','yuva444p10le',base+'.mov'],{stdio:'inherit'});
+  execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),'-vf',`${blend},format=yuva420p`,'-c:v','libvpx-vp9','-pix_fmt','yuva420p','-b:v','0','-crf','28','-row-mt','1','-auto-alt-ref','0',base+'.webm'],{stdio:'inherit'});
   console.log(`STAGE ffmpeg: ${((Date.now()-t1)/1000).toFixed(1)}s`);fs.rmSync(fd,{recursive:true,force:true});console.log('Rendered',base+'.mov',base+'.webm');process.exit(0)}
 const mp4=path.join(out,path.basename(plan.output)+'.mp4');t1=Date.now();
-const vf=(()=>{const post=meta.post||{glowPass:meta.theme!=='light',noise:meta.theme==='light'?2:5};const blend=`[0:v]format=gbrp,tmix=frames=${Math.round(meta.fps/meta.outFps)},fps=${meta.outFps}`;const nz=post.noise?`,noise=alls=${post.noise}:allf=t`:'';
+const vf=(()=>{const post=meta.post||{glowPass:meta.theme!=='light',noise:meta.theme==='light'?2:5};const blend=`[0:v]format=gbrp,${MIX}`;const nz=post.noise?`,noise=alls=${post.noise}:allf=t`:'';
   return post.glowPass?`${blend},split[a][b];[b]curves=all='0/0 0.7/0 1/1',gblur=sigma=${18*Math.min(W,H)/1080}[gl];[a][gl]blend=all_mode=screen:all_opacity=0.4${nz},format=yuv420p[v]`:`${blend}${nz},format=yuv420p[v]`})();
-execFileSync(FF,['-y','-loglevel','error','-framerate',String(meta.fps),'-i',path.join(fd,'f%05d.png'),...(silent?[]:['-i',path.join(out,'music.wav')]),'-filter_complex',vf,
+execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),...(silent?[]:['-i',path.join(out,'music.wav')]),'-filter_complex',vf,
  '-map','[v]',...(silent?['-an']:['-map','1:a','-c:a','aac','-b:a','192k','-shortest']),'-c:v','libx264','-crf','17','-preset','slow','-movflags','+faststart',mp4],{stdio:'inherit'});
 console.log(`STAGE ffmpeg: ${((Date.now()-t1)/1000).toFixed(1)}s`);
 fs.rmSync(fd,{recursive:true,force:true});
