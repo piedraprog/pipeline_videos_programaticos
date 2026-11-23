@@ -1,0 +1,28 @@
+{
+  "engine": "gsap",
+  "template": "corporate",
+  "brand": "brands/selltly/brand.json",
+  "style": "corporate-system",
+  "format": "9x16",
+  "fps": 60,
+  "outFps": 30,
+  "duration": 25.2,
+  "output": "projects/selltly-corporate-senales",
+  "story": {
+    "label": "LECTURA DEL NEGOCIO",
+    "hook": "Una visita\nno es una venta.",
+    "boardTitle": "Señales de tu tienda",
+    "signals": [
+      {"at": 3.6, "icon": "visit", "title": "Visitas", "description": "Entradas a tu tienda"},
+      {"at": 6.6, "icon": "product", "title": "Productos vistos", "description": "Interés por tu catálogo"},
+      {"at": 9.6, "icon": "chat", "title": "Clics a WhatsApp", "description": "El paso hacia una conversación"},
+      {"at": 12.6, "icon": "order", "title": "Pedidos por estado", "description": "Qué pedido necesita seguimiento"}
+    ],
+    "summaryAt": 16.2,
+    "summary": "Señales distintas.\nDecisiones más claras.",
+    "ctaAt": 19.2,
+    "ctaTitle": "Conoce qué pasa\nen tu tienda.",
+    "cta": "Solicitar acceso Founder",
+    "contact": "+58 400-0000000"
+  }
+}

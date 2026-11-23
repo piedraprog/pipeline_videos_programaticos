@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Selltly — señales de tu tienda</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;overflow:hidden}#stage{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:Inter,sans-serif}
+.layer{position:absolute;inset:0}.copy{position:absolute;margin:0;white-space:pre-line;line-height:1.5}.card{position:absolute;left:96px;width:888px;height:184px;border:1px solid var(--line);background:var(--surface)}
+.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--wine)}
+.icon{position:absolute;left:30px;top:36px;width:52px;height:52px;color:var(--wine)}
+.moving{will-change:transform,opacity}.rule{position:absolute;height:2px;background:var(--line)}
+</style><script src="lib/gsap.min.js"></script></head><body><main id="stage"></main>
+<script type="module">
+const root='../../';
+async function json(file){const response=await fetch(root+file);if(!response.ok)throw new Error(`Missing resource: ${file}`);return response.json()}
+function validate(plan,style,brand){
+  if(plan.engine!=='gsap'||plan.template!=='corporate'||plan.format!=='9x16'||plan.fps!==60||plan.outFps!==30)throw new Error('Corporate template requires gsap/corporate, 9x16, 60fps capture and 30fps output');
+  if(style.deprecated||style.name!==plan.style||!style.colors||!style.fonts?.src||!style.motion||!style.audio)throw new Error('Invalid corporate style');
+  if(!Number.isFinite(plan.duration)||plan.duration<20||plan.duration>35)throw new Error('Invalid duration');
+  const s=plan.story;
+  for(const key of ['label','hook','boardTitle','summary','ctaTitle','cta','contact'])if(typeof s?.[key]!=='string'||!s[key].trim())throw new Error(`Missing story.${key}`);
+  if(s.cta!==brand.messaging.ctas[0])throw new Error('CTA must use the canonical Founder wording');
+  if(s.contact!=='+58 400-0000000')throw new Error('Unexpected WhatsApp contact');
+  if(!Array.isArray(s.signals)||s.signals.length!==4)throw new Error('Four independent signals required');
+  let previous=3;
+  for(const item of s.signals){if(!['visit','product','chat','order'].includes(item.icon)||typeof item.title!=='string'||typeof item.description!=='string'||!Number.isFinite(item.at)||item.at<previous)throw new Error('Invalid signal or reading hold');previous=item.at+2.5}
+  if(!Number.isFinite(s.summaryAt)||s.summaryAt<previous||!Number.isFinite(s.ctaAt)||s.ctaAt<s.summaryAt+2.5||plan.duration<s.ctaAt+4.5)throw new Error('Insufficient summary/CTA reading hold');
+}
+async function main(){
+const plan=await json(new URLSearchParams(location.search).get('plan'));
+const [style,brand]=await Promise.all([json(`styles/${plan.style}.json`),json(plan.brand)]);validate(plan,style,brand);
+const S=plan.story,C=style.colors,M=style.motion,stage=document.querySelector('#stage');
+document.head.appendChild(Object.assign(document.createElement('style'),{textContent:`@font-face{font-family:Inter;src:url(${root+style.fonts.src}) format('truetype');font-weight:100 900}` }));
+await document.fonts.load('700 112px Inter');await document.fonts.load('500 38px Inter');await document.fonts.ready;
+stage.style.cssText=`background:${C.background};color:${C.text};--wine:${brand.palette.wine};--crimson:${brand.palette.crimson};--surface:${C.surface};--line:${C.line}`;
+const texts=[];
+function element(tag,cls,parent,css){const e=document.createElement(tag);e.className=cls;Object.assign(e.style,css||{});parent.append(e);return e}
+function copy(text,parent,css){const e=element('div','copy',parent,css);e.textContent=text;texts.push(e);return e}
+const logo=element('img','signature',stage,{position:'absolute',left:'96px',top:'190px',width:'180px',height:`${180/brand.logo.full.aspect}px`});logo.src=root+brand.logo.full.onLight;await logo.decode();
+copy(S.label,stage,{left:'96px',top:'290px',width:'888px',fontSize:'25px',letterSpacing:'.16em',fontWeight:600,color:C.muted});
+element('div','rule',stage,{left:'96px',top:'352px',width:'888px'});
+const hook=element('section','layer moving',stage);
+copy(S.hook,hook,{left:'96px',top:'534px',width:'888px',fontSize:'110px',fontWeight:700,letterSpacing:'-.055em'});
+element('div','rule',hook,{left:'96px',top:'910px',width:'136px',height:'6px',background:brand.palette.crimson});
+const board=element('section','layer moving',stage);
+const heading=copy(S.boardTitle,board,{left:'96px',top:'419px',width:'888px',fontSize:'68px',fontWeight:600,letterSpacing:'-.045em'});
+const icons={visit:'<path d="M8 27H40M28 15l12 12-12 12M8 10v34"/>',product:'<path d="M10 13h34v34H10zM10 23h34M21 13V7h12v6"/>',chat:'<path d="M8 10h38v30H23L11 49V40H8zM17 21h20M17 29h13"/>',order:'<path d="M14 9h29v41H14zM22 9V5h13v8H22M22 25l3 3 6-6M22 38h13"/>'};
+const cards=S.signals.map((signal,index)=>{
+  const card=element('article','card moving',board,{top:`${638+index*214}px`});
+  const icon=element('div','icon',card);icon.innerHTML=`<svg viewBox="0 0 56 56" width="52" height="52" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icons[signal.icon]}</svg>`;
+  copy(signal.title,card,{left:'116px',top:'31px',width:'735px',fontSize:'43px',fontWeight:600,letterSpacing:'-.035em'});
+  copy(signal.description,card,{left:'116px',top:'97px',width:'735px',fontSize:'32px',fontWeight:400,color:C.muted});return card;
+});
+const summary=copy(S.summary,board,{left:'96px',top:'414px',width:'888px',fontSize:'68px',fontWeight:600,letterSpacing:'-.045em'});
+const cta=element('section','layer moving',stage);
+copy(S.ctaTitle,cta,{left:'96px',top:'535px',width:'888px',fontSize:'104px',fontWeight:600,letterSpacing:'-.05em'});
+const button=element('div','moving',cta,{position:'absolute',left:'96px',top:'1036px',width:'888px',height:'124px',background:brand.palette.wine});
+copy(S.cta,button,{left:'36px',top:'38px',width:'800px',fontSize:'42px',fontWeight:600,color:'#ffffff'});
+copy(S.contact,cta,{left:'96px',top:'1235px',width:'888px',fontSize:'55px',fontWeight:500,letterSpacing:'-.035em'});
+// Materialize the zero-time state before constructing the timeline: the first
+// seek(0) does not necessarily render zero-duration timeline children.
+for(const e of [board,cta,summary,...cards])e.style.opacity='0';
+const timeline=gsap.timeline({paused:true,defaults:{ease:M.ease,duration:M.reveal}});
+timeline.set([board,cta,summary,...cards],{opacity:0},0);
+timeline.fromTo(hook,{opacity:1,y:0},{opacity:0,y:-M.distance,duration:M.reveal},2.7);
+timeline.to(board,{opacity:1},3.3);
+cards.forEach((card,i)=>timeline.fromTo(card,{opacity:0,y:M.distance},{opacity:1,y:0,immediateRender:false},S.signals[i].at));
+timeline.to(heading,{opacity:0,duration:.45},S.summaryAt);
+timeline.fromTo(summary,{opacity:0,y:M.distance},{opacity:1,y:0,immediateRender:false},S.summaryAt+.2);
+timeline.to(board,{opacity:0,y:-M.distance},S.ctaAt-.55);
+timeline.fromTo(cta,{opacity:0,y:M.distance},{opacity:1,y:0,immediateRender:false},S.ctaAt);
+window.seek=t=>timeline.seek(Math.max(0,Math.min(plan.duration,t)),true);
+const safe={left:86.4,right:993.6,top:172.8,bottom:1689.6};
+function visible(e){for(let n=e;n&&n!==stage;n=n.parentElement){const css=getComputedStyle(n);if(css.visibility==='hidden'||Number(css.opacity)<.05)return false}return true}
+window.qaCheck=()=>{
+  const issues=[];
+  for(const e of [...texts,logo,...cards,button]){
+    if(!visible(e))continue;const rect=e.getBoundingClientRect(),name=e.textContent||'Logo';
+    if(rect.left<safe.left-1||rect.right>safe.right+1||rect.top<safe.top-1||rect.bottom>safe.bottom+1)issues.push(`Outside safe area: ${name}`);
+    if(e.scrollWidth>e.clientWidth+1||e.scrollHeight>e.clientHeight+1)issues.push(`Overflow: ${name}`);
+    if(e.classList.contains('copy')){
+      const range=document.createRange();range.selectNodeContents(e);
+      for(const glyph of range.getClientRects()){
+        if(glyph.left<rect.left-1||glyph.right>rect.right+1||glyph.top<rect.top-1||glyph.bottom>rect.bottom+1)issues.push(`Text bounds: ${name}`);
+        for(let n=e.parentElement;n;n=n.parentElement){if(['hidden','clip'].includes(getComputedStyle(n).overflow)){const mask=n.getBoundingClientRect();if(glyph.left<mask.left-1||glyph.right>mask.right+1||glyph.top<mask.top-1||glyph.bottom>mask.bottom+1)issues.push(`Clipped text: ${name}`)}}
+      }
+    }
+  }
+  return [...new Set(issues)];
+};
+const cuts=[0,3.3,...S.signals.map(s=>s.at),S.summaryAt,S.ctaAt];
+const qaTimes=[0,...S.signals.map(s=>s.at+1.2),S.summaryAt+1.1,S.ctaAt+1.2,plan.duration-1/plan.fps];
+window.meta={W:1080,H:1920,theme:style.theme,style:plan.style,post:style.post,music:style.audio.music,bpm:style.audio.bpm,audio:'music',duration:plan.duration,fps:plan.fps,outFps:plan.outFps,output:plan.output,cuts,qaTimes,scenes:['hook',...S.signals.map(s=>s.icon),'summary','cta','final-hold'],copy:texts.map(e=>e.textContent)};
+window.seek(0);
+}
+window.ready=main();
+</script></body></html>
