@@ -2,6 +2,41 @@
 
 Create vertical product demos from real browser interactions. A JSON plan drives Playwright capture; Remotion composes the screenshots into a 1080×1920 MP4. Editorial mode supports independently scheduled background, graphics, logo, text and phone layers, with frame-driven depth entrances and accelerated screen transitions at 60 fps. Each project is stored in its own folder; there is no database. Audio and voice-over are out of scope.
 
+There are two engines. **GSAP** (`engines/gsap/`) renders brand videos and bumpers from a brand kit, a style and a story plan, with synthesized music and QA gates. **Remotion** (`templates/`) turns a Playwright capture into a silent phone-frame demo. See [GSAP engine](#gsap-engine-brand-videos--bumpers) below.
+
+## License
+
+The code is [MIT](LICENSE). Brand assets under `brands/`, the bundled fonts, GSAP and Remotion keep their own terms: read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before reusing anything. In short:
+
+- `brands/` holds example brand kits that belong to their owners. They are not MIT. Replace them with your own.
+- GSAP is free under Webflow's standard license, which is not an open-source license.
+- Remotion is free for individuals and for companies with up to 3 employees; larger companies need a Remotion Company License. Only the Remotion engine needs it.
+
+## Private work stays out of git
+
+This repository is public, so client or personal material must never be committed. Keep it in `private/`, which is git-ignored and mirrors the public layout:
+
+```
+private/brands/<client>/brand.json     # brand kit, logos, screenshots
+private/plans/<name>.json              # "brand": "private/brands/<client>/brand.json", "output": "private/projects/<name>"
+private/projects/<name>/               # renders
+```
+
+```bash
+bun run render -- private/plans/<name>.json --qa-only
+```
+
+A guardrail (`scripts/privacy-check.ts`) runs on every commit and push, and again in CI. It rejects:
+
+- brand kits not listed in `privacy.config.json → publicBrands`, and plans that point at them
+- images, video, audio and fonts outside `publicAssetDirs` (a screenshot cannot be scanned, so its location is the rule)
+- real phone numbers (placeholders like `+58 400-0000000` pass), emails, machine paths with a user name, and common credential formats
+- any term listed in your local `.private-terms` (git-ignored): client names, internal project names, domains
+
+`bun run setup` installs the hooks. To do it by hand: `git config core.hooksPath .githooks`, then `cp .private-terms.example .private-terms` and list the names that must never appear. Run it on demand with `bun run privacy-check` (staged files) or `bun run privacy-check -- --all` (everything in HEAD).
+
+The guardrail only sees what is about to enter git. It does not rewrite history and it cannot read text inside images.
+
 ## Requirements
 
 - Bun 1.3+ for scripts and rendering
