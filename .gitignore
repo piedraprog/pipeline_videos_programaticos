@@ -60,3 +60,10 @@ projects/*
 references/*/
 projects/stock-*/
 projects/cap-*/
+
+# private work: client brands, plans, captures and outputs live here, never in git
+private/
+.private-terms
+
+# editor / agent state
+.cursor/

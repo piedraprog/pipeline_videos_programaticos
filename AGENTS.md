@@ -105,6 +105,13 @@ QA gates (all must pass before claiming success):
 - Then inspect the contact sheet and frames yourself. A passing exit code is not visual proof.
 - `bun test` must stay green; it needs Node >= 24.
 
+## Public repository: private work goes in `private/`
+
+- This repository is public. Anything for a client or an unreleased product (brand kit, plan, screenshots, copy, renders) goes under `private/` (`private/brands/<client>/`, `private/plans/<name>.json`, output `private/projects/<name>`). It is git-ignored. Never create those files under `brands/`, `plans/` or `demos/`.
+- Engine code, styles and templates stay generic. Do not hardcode a client name, client copy, a real phone number or a real email in `engines/`, `styles/`, `src/`, `templates/` or `tests/`; read them from the plan or brand kit. Use placeholders such as `+58 400-0000000` in public examples.
+- `scripts/privacy-check.ts` runs on commit, on push and in CI. Do not bypass it with `--no-verify`. A new public brand needs an explicit entry in `privacy.config.json → publicBrands` and the owner's permission.
+- Before the first private project on a machine, check that `.private-terms` exists and lists the client and project names.
+
 ## Delivery rules (Jose, 2026-10-14)
 - No se genera voice over/TTS; la locución la graba Jose. Do not synthesize or mux any voice. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
 - Videos are delivered without intro or outro. Bumpers (`bun run bumper`) are separate assets; Jose adds them in post. Do not concatenate bumpers or use an `outro` scene at the end of a piece; end cleanly on the last content scene with the music faded out.
