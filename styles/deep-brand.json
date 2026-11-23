@@ -1,0 +1,44 @@
+{
+  "name": "deep-brand",
+  "description": "Dark counterpart of soft-depth for brands with a strong primary color: the product window sits on a deep backdrop lit by brand-colored glows, so a light interface gets maximum contrast. Captions use dark glass with white text. Colors are neutral defaults; a brand overrides them with brand.demoColors[\"deep-brand\"].",
+  "template": "demo",
+  "theme": "dark",
+  "colors": {
+    "bg": "#0b1626",
+    "glows": [
+      "rgba(64,120,255,.55)",
+      "rgba(0,200,170,.30)",
+      "rgba(120,90,255,.35)"
+    ],
+    "dots": "rgba(255,255,255,.06)",
+    "vignette": "rgba(0,4,12,.62)",
+    "text": "#ffffff",
+    "muted": "#b9c6d8",
+    "accent": "#4d8dff",
+    "accentText": "#ffffff",
+    "kicker": "#8fb4ff",
+    "card": "rgba(10,22,42,.74)",
+    "cardLine": "rgba(255,255,255,.16)",
+    "cardText": "#ffffff",
+    "cardMuted": "#b9c6d8",
+    "dim": "rgba(2,10,24,.55)",
+    "shadow": "rgba(0,0,0,.6)"
+  },
+  "background": {
+    "glow": 0.9
+  },
+  "fonts": {
+    "display": {
+      "family": "Inter",
+      "src": "engines/gsap/fonts/Inter.ttf"
+    }
+  },
+  "post": {
+    "glowPass": false,
+    "noise": 3
+  },
+  "audio": {
+    "music": "executive",
+    "bpm": 100
+  }
+}

@@ -23,7 +23,7 @@ html,body{overflow:hidden;background:#000}
 .card h2{text-wrap:balance;font-size:42px;line-height:1.14;font-weight:700;letter-spacing:-.03em;color:var(--card-text)}
 .card p{margin-top:10px;font-size:25px;line-height:1.35;font-weight:500;color:var(--card-muted)}
 .center{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;text-align:center}
-.kicker{font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.kicker{font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--kicker)}
 .headline{max-width:1500px;text-wrap:balance;font-size:96px;line-height:1.04;font-weight:800;letter-spacing:-.045em;color:var(--text)}
 .sub{max-width:1100px;font-size:34px;line-height:1.3;font-weight:500;color:var(--muted)}
 .mark{font-size:64px;font-weight:800;letter-spacing:-.04em;color:var(--text)}
@@ -67,7 +67,9 @@ function resolveColors(style, brand, plan) {
     if (!color) throw new Error(`Style color ${value} is not in the brand palette`);
     return color;
   };
-  const merged = { ...style.colors, ...brand.demoColors, ...plan.colors };
+  // brand.demoColors is either one flat set or one set per style name, so a brand can dress several styles.
+  const brandColors = brand.demoColors?.[plan.style] ?? (typeof Object.values(brand.demoColors ?? {})[0] === 'object' && !Array.isArray(Object.values(brand.demoColors)[0]) ? {} : brand.demoColors);
+  const merged = { ...style.colors, ...brandColors, ...plan.colors };
   return Object.fromEntries(Object.entries(merged).map(([key, value]) => [key, Array.isArray(value) ? value.map(pick) : pick(value)]));
 }
 
@@ -113,7 +115,7 @@ async function main() {
   const windowRect = { x: (W - WINDOW_WIDTH) / 2, y: (H - viewHeight - CHROME_HEIGHT) / 2, width: WINDOW_WIDTH, height: viewHeight + CHROME_HEIGHT };
 
   const stage = document.getElementById('stage');
-  stage.style.cssText += `;font-family:Demo,sans-serif;background:${colors.bg};--accent:${colors.accent};--accent-text:${colors.accentText};--text:${colors.text};--muted:${colors.muted};` +
+  stage.style.cssText += `;font-family:Demo,sans-serif;background:${colors.bg};--accent:${colors.accent};--kicker:${colors.kicker ?? colors.accent};--accent-text:${colors.accentText};--text:${colors.text};--muted:${colors.muted};` +
     `--card:${colors.card};--card-line:${colors.cardLine};--card-text:${colors.cardText};--card-muted:${colors.cardMuted};--dim:${colors.dim};--shadow:${colors.shadow};` +
     `--hairline:${dark ? 'rgba(255,255,255,.1)' : 'rgba(8,16,32,.08)'};--chrome-dot:${dark ? '#3b4658' : '#d5dae2'};--chrome-pill:${dark ? '#111a2b' : '#eef1f5'};--chrome-text:${dark ? '#8fa0b8' : '#6b7686'}`;
 
