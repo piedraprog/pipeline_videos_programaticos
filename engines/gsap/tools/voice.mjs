@@ -162,7 +162,7 @@ async function main() {
   console.log(marks.join('\n'));
   const overflows = findOverflows(lines);
   if (overflows.length > 0) {
-    throw new Error(`These lines run past their scene; shorten the line or lengthen the beat:\n${overflows.map((line) => `- ${line.scene}: ${(line.at + line.duration - line.sceneEnd).toFixed(1)} s over`).join('\n')}`);
+    throw new Error(`These lines run past their scene; shorten the line or lengthen the beat:\n${overflows.map((line) => `- ${line.scene}: ${(line.at + line.duration + TAIL_SECONDS - line.sceneEnd).toFixed(2)} s over (includes a ${TAIL_SECONDS} s tail)`).join('\n')}`);
   }
 
   const music = path.join(outputDir, 'music.wav');
