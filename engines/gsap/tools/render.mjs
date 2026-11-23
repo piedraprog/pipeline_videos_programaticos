@@ -1,6 +1,6 @@
 // Usage: bun run render -- plans/<plan>.json [--qa-only] [--motion-check] [--workers=N]
 // plan.template: index (default, brand pieces) | stock (no-text stock clips) | whatsapp (chat recreation)
-import {FF,PY} from './bin.mjs';import {prepareMusic} from './music.mjs';
+import {FF,PY} from './bin.mjs';import {prepareMusic} from './music.mjs';import {captureJobs,inputFingerprint,linkOrCopy,sampleFile,segmentKey,segmentRanges,shutterPlan} from './frames.mjs';
 import {chromium} from 'playwright';
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';import os from 'node:os';
@@ -47,20 +47,36 @@ if(failed){console.error('Motion check failed.');await b.close();srv.close();pro
 if(qaOnly){await b.close();srv.close();process.exit(0)}
 if(ALPHA)await p.evaluate(()=>{document.documentElement.style.background='transparent'});
 const fd=path.join(out,'frames');fs.rmSync(fd,{recursive:true,force:true});fs.mkdirSync(fd);
-const n=Math.round(meta.duration*meta.fps);const t0=Date.now();
-// Parallel frame capture: N pages, each seeks its own interleaved frames (deterministic, order-independent).
-const wArg=process.argv.find(a=>a.startsWith('--workers='));const N=Math.max(1,+(wArg?.split('=')[1]||Math.min(6,Math.max(1,Math.floor(os.cpus().length/3)))));
-const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage(PAGE);await open(q);pages.push(q)}
-let done=0;
+const t0=Date.now();
 // Motion blur: meta.fps/meta.outFps sub-frames exist per output frame. With meta.shutter (degrees) only the
 // sub-frames inside the open shutter are captured and averaged, like a film camera. Without it, every
 // sub-frame is blended (legacy 360-degree behaviour).
-const SUB=Math.round(meta.fps/meta.outFps);const OPEN=meta.shutter?Math.max(1,Math.round(SUB*meta.shutter/360)):SUB;
-const jobs=[];for(let i=0;i<n;i++)if(i%SUB<OPEN)jobs.push(i);
+const {perFrame:SUB,open:OPEN}=shutterPlan(meta);
 // Shutter renders capture several times more frames; JPEG encodes about 3x faster than PNG and the frames are averaged anyway.
 const EXT=!ALPHA&&meta.shutter?'jpg':'png';const SHOT=EXT==='jpg'?{type:'jpeg',quality:98}:{omitBackground:ALPHA};
-await Promise.all(pages.map(async(pg,w)=>{for(let j=w;j<jobs.length;j+=N){await pg.evaluate(t=>{seek(t)},jobs[j]/meta.fps);await pg.screenshot({path:path.join(fd,`f${String(j).padStart(5,'0')}.${EXT}`),...SHOT});if(++done%120===0)console.log(`frame ${done}/${jobs.length}`)}}));
-console.log(`STAGE frames: ${jobs.length} frames (${OPEN}/${SUB} sub-frames per output frame), ${N} workers, ${((Date.now()-t0)/1000).toFixed(1)}s`);
+const totalFrames=Math.round(meta.duration*meta.outFps);
+// Scenes whose inputs did not change keep their frames from the previous render (--fresh ignores them).
+const styleFile=`styles/${plan.style}.json`;const styleJ=fs.existsSync(path.join(ROOT,styleFile))?JSON.parse(fs.readFileSync(path.join(ROOT,styleFile))):{};
+const fingerprint=inputFingerprint({root:ROOT,plan,brand:brandJ,style:styleJ,codeFiles:[`engines/gsap/${plan.template||'index'}.html`,'engines/gsap/lib/motion.js'],settings:{W,H,SS,fps:meta.fps,outFps:meta.outFps,shutter:meta.shutter??null,EXT}});
+const cacheRoot=path.join(out,'frame-cache');const fresh=process.argv.includes('--fresh');
+const ranges=segmentRanges(meta.segments??[{name:'all',start:0,end:meta.duration,source:JSON.stringify(plan)}],meta.outFps,totalFrames).map(r=>({...r,dir:path.join(cacheRoot,segmentKey(fingerprint,r.segment))}));
+const stale=ranges.filter(r=>{const marker=path.join(r.dir,'done');return fresh||!fs.existsSync(marker)||fs.readFileSync(marker,'utf8')!==String(r.end-r.first)});
+for(const r of stale){fs.rmSync(r.dir,{recursive:true,force:true});fs.mkdirSync(r.dir,{recursive:true})}
+const jobs=[];
+for(const r of stale){const frames=Array.from({length:r.end-r.first},(_,i)=>r.first+i);
+  // A template that cannot tell holds from motion gets every sample captured.
+  const moving=await p.evaluate(({frames,sub,open,fps})=>frames.map(f=>!window.isMoving||Array.from({length:open},(_,k)=>(f*sub+k)/fps).some(t=>window.isMoving(t))),{frames,sub:SUB,open:OPEN,fps:meta.fps});
+  jobs.push(...captureJobs({dir:r.dir,extension:EXT,frames,moving,perFrame:SUB,open:OPEN,fps:meta.fps}))}
+// Parallel frame capture: N pages, each seeks its own interleaved frames (deterministic, order-independent).
+// More pages do not help: they share one GPU process, and capture slows down past four.
+const wArg=process.argv.find(a=>a.startsWith('--workers='));const N=Math.max(1,Math.min(jobs.length||1,+(wArg?.split('=')[1]||Math.min(4,Math.max(1,Math.floor(os.cpus().length/3))))));
+const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage(PAGE);await open(q);pages.push(q)}
+let done=0;
+await Promise.all(pages.map(async(pg,w)=>{for(let j=w;j<jobs.length;j+=N){const job=jobs[j];await pg.evaluate(t=>{seek(t)},job.time);await pg.screenshot({path:job.file,...SHOT});for(const copy of job.copies)linkOrCopy(job.file,copy);if(++done%240===0)console.log(`frame ${done}/${jobs.length}`)}}));
+for(const r of stale)fs.writeFileSync(path.join(r.dir,'done'),String(r.end-r.first));
+for(const r of ranges)for(let f=r.first;f<r.end;f++)for(let k=0;k<OPEN;k++)linkOrCopy(sampleFile(r.dir,EXT,f,k),path.join(fd,`f${String(f*OPEN+k).padStart(5,'0')}.${EXT}`));
+const keep=new Set(ranges.map(r=>path.basename(r.dir)));for(const old of fs.readdirSync(cacheRoot))if(!keep.has(old))fs.rmSync(path.join(cacheRoot,old),{recursive:true,force:true});
+console.log(`STAGE frames: captured ${jobs.length} of ${totalFrames*OPEN} samples (${stale.length}/${ranges.length} scenes changed, still frames captured once), ${N} workers, ${((Date.now()-t0)/1000).toFixed(1)}s`);
 // tmix output k mixes inputs k-OPEN+1..k, so keeping every OPEN-th one yields exactly one output frame per shutter window.
 const IN_FPS=String(meta.outFps*OPEN);const MIX=`tmix=frames=${OPEN},select='not(mod(n+1\\,${OPEN}))',setpts=N/(${meta.outFps}*TB),fps=${meta.outFps}`;
 await b.close();srv.close();

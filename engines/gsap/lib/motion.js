@@ -60,6 +60,10 @@ export function createTrack(initial) {
       segments.sort((a, b) => a.at - b.at);
       return this;
     },
+    // True while a segment is in progress: the renderer uses it to tell moving frames from holds.
+    active(time) {
+      return segments.some((segment) => segment.duration > 0 && time >= segment.at && time <= segment.at + segment.duration);
+    },
     at(time) {
       const state = { ...initial };
       for (const segment of segments) {
@@ -153,6 +157,13 @@ export function createCursor({ parent, color, start }) {
     click(at) {
       clicks.push(at);
       return this;
+    },
+    isBusy(time) {
+      return (
+        visibility.active(time) ||
+        moves.some((move) => time >= move.at && time <= move.at + move.duration) ||
+        clicks.some((at) => time >= at - 0.08 && time <= at + 0.6)
+      );
     },
     apply(time, zoom) {
       let position = start;

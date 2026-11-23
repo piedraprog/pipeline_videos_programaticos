@@ -332,6 +332,14 @@ async function main() {
     dots.style.transform = `translate(${(-panX * 0.06).toFixed(2)}px,${(-panY * 0.06).toFixed(2)}px)`;
   };
 
+  // Holds outnumber moves in a walkthrough. The renderer captures a still frame once instead of once per
+  // motion-blur sample, so it needs to know when anything on screen is animating.
+  const FRAME_PAD = 1 / 24;
+  const tweenWindows = timeline.getChildren(false, true, true).filter((child) => child.totalDuration() > 0).map((child) => [child.startTime() - FRAME_PAD, child.startTime() + child.totalDuration() + FRAME_PAD]);
+  window.isMoving = (time) =>
+    tweenWindows.some(([from, to]) => time >= from && time <= to) ||
+    [time - FRAME_PAD, time, time + FRAME_PAD].some((moment) => camera.track.active(moment) || cursor.isBusy(moment) || Object.values(screens).some((screen) => screen.scroll.active(moment)));
+
   function isVisible(element) {
     for (let node = element; node && node !== stage; node = node.parentElement) {
       const css = getComputedStyle(node);
@@ -350,9 +358,14 @@ async function main() {
     }
     return issues;
   };
+  // A scene's pixels depend on everything scheduled up to it, and the next scene can reach back a few
+  // frames (the cursor appears early, the outro hides it early). Narration text never changes a pixel.
+  const visualScenes = [story.intro, ...story.beats, story.outro].map(({ say, sayAt, ...visual }) => visual);
+  const sharedSource = JSON.stringify({ screens: story.screens, viewport });
+  const segments = sceneNames.map((name, index) => ({ name, start: cuts[index], end: cuts[index + 1] ?? total, source: sharedSource + JSON.stringify(visualScenes.slice(0, index + 2)) }));
   window.meta = {
     W, H, theme: style.theme, style: plan.style, post: style.post, music: plan.music ?? style.audio.music, bpm: plan.bpm ?? style.audio.bpm, audio: plan.audio,
-    duration: total, fps: plan.fps, outFps: plan.outFps, shutter: plan.shutter, output: plan.output, cuts, qaTimes, scenes: sceneNames, copy,
+    duration: total, fps: plan.fps, outFps: plan.outFps, shutter: plan.shutter, output: plan.output, cuts, qaTimes, scenes: sceneNames, copy, segments,
   };
   window.seek(0);
   return true;
