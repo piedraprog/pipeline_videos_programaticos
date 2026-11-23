@@ -38,6 +38,7 @@ test('the audio cache changes with the text, the voice and the instructions', ()
   expect(cacheName(voice, 'Adiós.')).not.toBe(name);
   expect(cacheName({ ...voice, voiceId: 'marin' }, 'Hola.')).not.toBe(name);
   expect(cacheName({ ...voice, instructions: 'urgent' }, 'Hola.')).not.toBe(name);
+  expect(cacheName({ ...voice, settings: { speed: 1.1 } }, 'Hola.')).not.toBe(name);
 });
 
 test('narration is held to the same forbidden-messaging list as on-screen copy', () => {

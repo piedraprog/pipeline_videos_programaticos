@@ -37,7 +37,7 @@ export function findOverflows(lines) {
 }
 
 export function cacheName(voice, text) {
-  const identity = JSON.stringify([voice.provider, voice.model, voice.voiceId, voice.instructions ?? '', text]);
+  const identity = JSON.stringify([voice.provider, voice.model, voice.voiceId, voice.instructions ?? '', voice.settings ?? null, text]);
   return `${createHash('sha256').update(identity).digest('hex').slice(0, 16)}.mp3`;
 }
 
