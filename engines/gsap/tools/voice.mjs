@@ -13,6 +13,7 @@ import { prepareMusic } from './music.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const LEAD_IN_SECONDS = 0.4;
 const TAIL_SECONDS = 0.2;
+const DEFAULT_MUSIC_VOLUME = 0.75;
 
 const PROVIDERS = {
   elevenlabs: { keyName: 'ELEVENLABS_API_KEY', defaultModel: 'eleven_multilingual_v2', synthesize: synthesizeElevenLabs },
@@ -31,6 +32,17 @@ export function collectLines(plan, meta) {
     lines.push({ scene: meta.scenes[index], text: scene.say, at: meta.cuts[index] + LEAD_IN_SECONDS, sceneEnd });
   });
   return lines;
+}
+
+// plan.voice.pronounce maps a written word to how the voice should say it ({"SAP": "sap"}),
+// so on-screen copy and the timestamps file keep the correct spelling.
+export function applyPronunciation(text, pronounce = {}) {
+  let spoken = text;
+  for (const [written, said] of Object.entries(pronounce)) {
+    const escaped = written.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    spoken = spoken.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu'), said);
+  }
+  return spoken;
 }
 
 export function findOverflows(lines) {
@@ -100,13 +112,13 @@ function audioDuration(file) {
   return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
 }
 
-function mix({ video, music, lines, output }) {
+function mix({ video, music, musicVolume, lines, output }) {
   const inputs = ['-i', video, ...(music ? ['-i', music] : []), ...lines.flatMap((line) => ['-i', line.file])];
   const firstVoice = music ? 2 : 1;
   const delayed = lines.map((line, index) => `[${firstVoice + index}:a]aresample=48000,adelay=${Math.round(line.at * 1000)}:all=1[v${index}]`);
   const voiceBus = `${lines.map((_, index) => `[v${index}]`).join('')}amix=inputs=${lines.length}:normalize=0,apad`;
   const graph = music
-    ? [...delayed, `${voiceBus},asplit[vo][key]`, '[1:a]volume=0.75[bed]', '[bed][key]sidechaincompress=threshold=0.02:ratio=9:attack=40:release=450[duck]', '[duck][vo]amix=inputs=2:normalize=0,alimiter=limit=0.9[a]']
+    ? [...delayed, `${voiceBus},asplit[vo][key]`, `[1:a]volume=${musicVolume}[bed]`, '[bed][key]sidechaincompress=threshold=0.02:ratio=9:attack=40:release=450[duck]', '[duck][vo]amix=inputs=2:normalize=0,alimiter=limit=0.9[a]']
     : [...delayed, `${voiceBus},alimiter=limit=0.9[a]`];
   execFileSync(FF, ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', graph.join(';'), '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', output], { stdio: 'inherit' });
 }
@@ -150,9 +162,10 @@ async function main() {
   const cacheDir = path.join(outputDir, 'voice');
   fs.mkdirSync(cacheDir, { recursive: true });
   for (const line of lines) {
-    line.file = path.join(cacheDir, cacheName(voice, line.text));
+    const spoken = applyPronunciation(line.text, plan.voice?.pronounce);
+    line.file = path.join(cacheDir, cacheName(voice, spoken));
     if (!fs.existsSync(line.file)) {
-      fs.writeFileSync(line.file, await voice.synthesize(line.text, voice, voice.key));
+      fs.writeFileSync(line.file, await voice.synthesize(spoken, voice, voice.key));
       console.log(`synthesized ${line.scene}`);
     }
     line.duration = audioDuration(line.file);
@@ -169,7 +182,7 @@ async function main() {
   // Rebuilt on every run so a new plan.musicFile or plan.music applies without rendering the picture again.
   const music = meta.audio === 'none' ? null : prepareMusic({ root: ROOT, plan, meta, outputDir });
   const output = path.join(outputDir, `${name}-voz-${voice.provider}.mp4`);
-  mix({ video, music, lines, output });
+  mix({ video, music, musicVolume: plan.voice?.musicVolume ?? DEFAULT_MUSIC_VOLUME, lines, output });
   console.log(`Narrated draft: ${output}`);
 }
 

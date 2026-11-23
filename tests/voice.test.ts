@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { cacheName, collectLines, findForbidden, findOverflows } from '../engines/gsap/tools/voice.mjs';
+import { applyPronunciation, cacheName, collectLines, findForbidden, findOverflows } from '../engines/gsap/tools/voice.mjs';
+import { copiesNeeded, loopGraph } from '../engines/gsap/tools/music.mjs';
 
 const plan = {
   story: {
@@ -44,4 +45,18 @@ test('the audio cache changes with the text, the voice and the instructions', ()
 test('narration is held to the same forbidden-messaging list as on-screen copy', () => {
   expect(findForbidden([{ text: 'Prueba GRÁTIS hoy' }], ['gratis'])).toHaveLength(1);
   expect(findForbidden([{ text: 'Prueba hoy' }], ['gratis'])).toEqual([]);
+});
+
+test('a pronunciation override replaces whole words only and leaves the rest of the line alone', () => {
+  expect(applyPronunciation('No se escribe en SAP.', { SAP: 'sap' })).toBe('No se escribe en sap.');
+  expect(applyPronunciation('SAPIENS usa SAP', { SAP: 'sap' })).toBe('SAPIENS usa sap');
+  expect(applyPronunciation('Sin cambios.', undefined)).toBe('Sin cambios.');
+});
+
+test('a track shorter than the piece is repeated just enough times, and a longer one is used once', () => {
+  expect(copiesNeeded(45, 60)).toBe(1);
+  expect(copiesNeeded(45, 30)).toBe(2);
+  expect(copiesNeeded(90, 30)).toBe(4);
+  expect(loopGraph(1, 60)).toEqual({ graph: [], last: '[0:a]' });
+  expect(loopGraph(2, 30).last).toBe('[loop1]');
 });
