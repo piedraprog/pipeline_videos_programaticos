@@ -121,7 +121,7 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
    - Frames are cached per scene in `<output>/frame-cache/`. Editing one scene re-captures that scene and the one before it; editing narration, music or volume re-captures nothing. `--fresh` ignores the cache.
    - A still frame is captured once instead of once per blur sample. The template reports motion through `window.isMoving(t)`; a template without it gets every sample captured.
    - Four capture pages is the measured optimum (`--workers=N` overrides). More pages are slower because they share one GPU process.
-   - `"supersample": 2` captures at twice the resolution and scales down for sharper text, at roughly 3.5x the capture time; `"crf"` sets the compression (default 17, lower is better). Iterate without them and add them for the final render.
+   - `"supersample": 2` captures at twice the resolution and scales down for sharper text, at roughly 3.5x the capture time; `"crf"` sets the compression (default 17, lower is better). Iterate without them and add them for the final render. `"outputHeight": 720` delivers 720p from the same 1080p capture.
 6. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
 
 ## Runbook: draft narration (`bun run voice`)

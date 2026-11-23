@@ -91,7 +91,9 @@ const mp4=path.join(out,path.basename(plan.output)+'.mp4');t1=Date.now();
 // Encoded under another name and renamed at the end, so a half-written file is never mistaken for the video.
 const partial=mp4.replace(/\.mp4$/,'.partial.mp4');
 // HD players assume BT.709; without the explicit matrix ffmpeg converts RGB with BT.601 and colors shift.
-const FIT=`scale=${W}:${H}:flags=lanczos:out_color_matrix=bt709:out_range=tv`;
+// plan.outputHeight delivers a smaller file (720 for 720p) from the same capture; widths stay even for the encoder.
+const OUT_H=plan.outputHeight??H;const OUT_W=Math.round(W*OUT_H/H/2)*2;
+const FIT=`scale=${OUT_W}:${OUT_H}:flags=lanczos:out_color_matrix=bt709:out_range=tv`;
 const vf=(()=>{const post=meta.post||{glowPass:meta.theme!=='light',noise:meta.theme==='light'?2:5};const blend=`[0:v]format=gbrp,${MIX}`;const nz=post.noise?`,noise=alls=${post.noise}:allf=t`:'';
   return post.glowPass?`${blend},split[a][b];[b]curves=all='0/0 0.7/0 1/1',gblur=sigma=${18*Math.min(W,H)/1080}[gl];[a][gl]blend=all_mode=screen:all_opacity=0.4${nz},${FIT},format=yuv420p[v]`:`${blend}${nz},${FIT},format=yuv420p[v]`})();
 execFileSync(FF,['-y','-loglevel','error','-framerate',IN_FPS,'-i',path.join(fd,`f%05d.${EXT}`),...(silent?[]:['-i',path.join(out,'music.wav')]),'-filter_complex',vf,

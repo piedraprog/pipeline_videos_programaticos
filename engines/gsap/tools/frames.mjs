@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Plan fields that never change a pixel: editing them must not invalidate captured frames.
-const NON_VISUAL_PLAN_FIELDS = ['story', 'voice', 'music', 'musicFile', 'audio', 'bpm', 'crf', 'output'];
+const NON_VISUAL_PLAN_FIELDS = ['story', 'voice', 'music', 'musicFile', 'audio', 'bpm', 'crf', 'output', 'outputHeight'];
 
 function sha(text) {
   return createHash('sha256').update(text).digest('hex');
