@@ -29,11 +29,14 @@ A style JSON with `"deprecated": "<reason>"` is blocked: the gsap engine throws 
 | id | Look | Audio |
 |---|---|---|
 | soft-depth | Browser window floating in soft light, one continuous camera take with tilt and parallax, curved cursor, spotlights, frosted caption cards | minimal 104 |
+| deep-brand | Same camera work on a deep backdrop lit by brand-colored glows: maximum contrast for a light interface, dark glass captions | executive 100 |
 
 These styles hold neutral colors. A brand recolors them with `brand.json → demoColors`, where `"@name"` reads `palette.name`:
 
 ```json
 "demoColors": { "bg": "@paper", "glows": ["@lime", "@terracotta", "@sage"], "accent": "@forest", "accentText": "@lime" }
 ```
+
+A brand that dresses more than one style keys the block by style name: `"demoColors": { "soft-depth": {...}, "deep-brand": {...} }`. `kicker` colors the small line above the headline (defaults to `accent`).
 
 A plan can override any color the same way with `"colors"`. The motion vocabulary (camera, cursor, eases, word reveals) lives in `engines/gsap/lib/motion.js` and is shared by every template that imports it.

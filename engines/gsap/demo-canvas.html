@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Product demo, canvas renderer</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="frame"></canvas>
+<script type="module">
+// Canvas renderer for the product-demo story: the same choreography as demo.html (lib/demoScene.js),
+// drawn with WebGL and encoded to H.264 inside the browser, one independent clip per scene.
+import { buildDemoScene, CHROME_HEIGHT, STAGE } from './lib/demoScene.js';
+import { compose, createPainter, rotateX, scale, translate } from './lib/gl.js';
+import { createTextSprite, drawText, drawWords } from './lib/textSprite.js';
+
+const ROOT = '../../';
+const PERSPECTIVE = 2600;
+const WINDOW_RADIUS = 18;
+const SAFE = { left: STAGE.width * 0.04, right: STAGE.width * 0.96, top: STAGE.height * 0.05, bottom: STAGE.height * 0.95 };
+const CARD = { left: 96, bottom: 74, maxWidth: 820, padX: 36, padTop: 28, padBottom: 30, radius: 26, captionGap: 10 };
+const GLOW_ANCHORS = [[430, 230], [1650, 910], [990, 1170]];
+const GLOW_RADIUS = 679;
+const KEYFRAME_EVERY = 150;
+
+async function loadJson(file) {
+  const response = await fetch(ROOT + file);
+  if (!response.ok) throw new Error(`Missing resource: ${file}`);
+  return response.json();
+}
+
+async function loadImage(file) {
+  const response = await fetch(ROOT + file);
+  if (!response.ok) throw new Error(`Missing resource: ${file}`);
+  return createImageBitmap(await response.blob());
+}
+
+// "@name" reads brand.palette.name, so one style serves every brand.
+function resolveColors(style, brand, plan) {
+  const pick = (value) => {
+    if (typeof value !== 'string' || !value.startsWith('@')) return value;
+    const color = brand.palette?.[value.slice(1)];
+    if (!color) throw new Error(`Style color ${value} is not in the brand palette`);
+    return color;
+  };
+  const first = Object.values(brand.demoColors ?? {})[0];
+  const perStyle = typeof first === 'object' && !Array.isArray(first);
+  const brandColors = brand.demoColors?.[plan.style] ?? (perStyle ? {} : brand.demoColors);
+  const merged = { ...style.colors, ...brandColors, ...plan.colors };
+  return Object.fromEntries(Object.entries(merged).map(([key, value]) => [key, Array.isArray(value) ? value.map(pick) : pick(value)]));
+}
+
+const probe = new OffscreenCanvas(1, 1).getContext('2d', { willReadFrequently: true });
+function rgba(cssColor) {
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = cssColor;
+  probe.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+  return a === 0 ? [0, 0, 0, 0] : [r / 255, g / 255, b / 255, a / 255];
+}
+
+function bitmapSprite(painter, width, height, paint) {
+  const canvas = new OffscreenCanvas(width * 2, height * 2);
+  const context = canvas.getContext('2d');
+  context.scale(2, 2);
+  paint(context);
+  return { texture: painter.texture(canvas), width, height };
+}
+
+async function main() {
+  const plan = await loadJson(new URLSearchParams(location.search).get('plan'));
+  if (plan.format !== '16x9') throw new Error('The demo template renders 16x9 only');
+  const [brand, style] = await Promise.all([loadJson(plan.brand), loadJson(`styles/${plan.style}.json`)]);
+  if (style.deprecated) throw new Error(`Style ${plan.style} is deprecated`);
+  const story = plan.story;
+  const colors = resolveColors(style, brand, plan);
+  const dark = style.theme === 'dark';
+  const font = brand.fonts?.ui ?? style.fonts.display;
+  document.fonts.add(await new FontFace('Demo', `url(${ROOT + font.src})`, { weight: '100 900' }).load());
+
+  const outputHeight = plan.outputHeight ?? STAGE.height;
+  const canvas = document.getElementById('frame');
+  canvas.height = outputHeight;
+  canvas.width = Math.round((STAGE.width * outputHeight) / STAGE.height / 2) * 2;
+  const painter = createPainter(canvas, { ...STAGE, perspective: PERSPECTIVE });
+
+  const screens = {};
+  for (const screen of story.screens) {
+    const image = await loadImage(screen.image);
+    const pixelRatio = screen.scale ?? 2;
+    screens[screen.id] = { url: screen.url ?? '', texture: painter.texture(image), boxes: screen.boxes ? await loadJson(screen.boxes) : {}, pageWidth: image.width / pixelRatio, pageHeight: image.height / pixelRatio };
+  }
+  const scene = buildDemoScene(story, screens);
+  const { windowRect, viewRect, viewport } = scene;
+  const windowClip = { ...windowRect, radius: WINDOW_RADIUS };
+
+  // ---- Everything that is text or a fixed drawing becomes a texture once
+  const chromeColors = dark ? { dot: '#3b4658', pill: '#111a2b', text: '#8fa0b8' } : { dot: '#d5dae2', pill: '#eef1f5', text: '#6b7686' };
+  const chromeBars = {};
+  for (const [id, screen] of Object.entries(screens)) {
+    chromeBars[id] = bitmapSprite(painter, windowRect.width, CHROME_HEIGHT, (context) => {
+      context.fillStyle = chromeColors.dot;
+      for (let dot = 0; dot < 3; dot++) {
+        context.beginPath();
+        context.arc(26.5 + dot * 22, 25, 6.5, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.font = '500 15px Demo';
+      const pillWidth = context.measureText(screen.url).width + 36;
+      context.fillStyle = chromeColors.pill;
+      context.beginPath();
+      context.roundRect(108, 10, pillWidth, 30, 15);
+      context.fill();
+      context.fillStyle = chromeColors.text;
+      context.textBaseline = 'middle';
+      context.fillText(screen.url, 126, 25.5);
+    });
+  }
+  const pointer = bitmapSprite(painter, 64, 64, (context) => {
+    context.translate(12, 10);
+    context.scale(40 / 28, 40 / 28);
+    const arrow = new Path2D('M5 3l17 9.2-7.3 1.9L18.9 22l-3.6 1.8-4-7.8L5 21z');
+    context.shadowColor = 'rgba(0,0,0,.28)';
+    context.shadowBlur = 5;
+    context.shadowOffsetY = 3;
+    context.fillStyle = '#111';
+    context.fill(arrow);
+    context.shadowColor = 'transparent';
+    context.lineJoin = 'round';
+    context.lineWidth = 1.6;
+    context.strokeStyle = '#fff';
+    context.stroke(arrow);
+  });
+  const POINTER_HOTSPOT = { x: 12 + (5 * 40) / 28, y: 10 + (3 * 40) / 28 };
+
+  const text = (value, textStyle) => (value ? createTextSprite(painter, value, textStyle) : null);
+  const headline = (value, size) => text(value, { size, weight: 800, tracking: -0.045, lineHeight: 1.04, maxWidth: 1500, align: 'center', balanced: true, color: colors.text });
+  const subline = (value) => text(value, { size: 34, weight: 500, lineHeight: 1.3, maxWidth: 1100, align: 'center', color: colors.muted });
+  const logoFile = brand.logo?.full?.[dark ? 'onDark' : 'onLight'];
+  const logo = logoFile ? await loadImage(logoFile) : null;
+  const logoTexture = logo ? painter.texture(logo) : null;
+  const markText = logo ? null : text(brand.logo?.text ?? brand.name, { size: 64, weight: 800, tracking: -0.04, color: colors.text });
+  const mark = (height) => (logo ? { texture: logoTexture, width: (logo.width / logo.height) * height, height } : { sprite: markText, width: markText.width, height: markText.height });
+
+  const intro = {
+    mark: mark(78),
+    kicker: text(scene.intro.kicker, { size: 22, weight: 700, tracking: 0.2, uppercase: true, color: colors.kicker ?? colors.accent }),
+    title: headline(scene.intro.title, 96),
+    sub: subline(scene.intro.subtitle),
+    gap: 30,
+  };
+  const outro = { mark: mark(96), title: headline(scene.outro.title, 80), sub: subline(scene.outro.subtitle), gap: 28 };
+  const cards = scene.cards.map((card) => {
+    const inner = CARD.maxWidth - CARD.padX * 2;
+    const title = text(card.title, { size: 42, weight: 700, tracking: -0.03, lineHeight: 1.14, maxWidth: inner, balanced: true, color: colors.cardText });
+    const caption = text(card.caption, { size: 25, weight: 500, lineHeight: 1.35, maxWidth: inner, color: colors.cardMuted });
+    const width = Math.max(title.width, caption?.width ?? 0) + CARD.padX * 2;
+    const height = CARD.padTop + title.height + (caption ? CARD.captionGap + caption.height : 0) + CARD.padBottom;
+    return { title, caption, rect: { x: CARD.left, y: STAGE.height - CARD.bottom - height, width, height } };
+  });
+  const labels = scene.highlights.map((highlight) => {
+    if (!highlight.label) return null;
+    const label = text(highlight.label, { size: 19, weight: 700, tracking: -0.005, lineHeight: 1.2, color: colors.accentText });
+    return { label, width: label.width + 32, height: label.height + 18 };
+  });
+
+  const tint = Object.fromEntries(['bg', 'vignette', 'accent', 'card', 'dim', 'shadow'].map((key) => [key, rgba(colors[key])]));
+  const windowColor = rgba(dark ? '#1a2436' : '#f8f9fb');
+  const glows = colors.glows.slice(0, 3).map((glow, index) => ({ color: rgba(glow), anchor: GLOW_ANCHORS[index], phase: index * 2.1, depth: 0.12 + index * 0.07 }));
+  while (glows.length < 3) glows.push({ color: [0, 0, 0, 0], anchor: [0, 0], phase: 0, depth: 0 });
+
+  function centerStack(layer) {
+    const items = [layer.mark, layer.kicker, layer.title, layer.sub].filter(Boolean);
+    const total = items.reduce((sum, item) => sum + item.height, 0) + layer.gap * (items.length - 1);
+    let y = (STAGE.height - total) / 2;
+    const top = new Map();
+    for (const item of items) {
+      top.set(item, y);
+      y += item.height + layer.gap;
+    }
+    return top;
+  }
+  const introTop = centerStack(intro);
+  const outroTop = centerStack(outro);
+  const centered = (item) => (STAGE.width - item.width) / 2;
+
+  function drawMark(item, top, state) {
+    if (state.opacity <= 0) return;
+    const x = centered(item);
+    const y = top + state.y;
+    const pivot = compose(painter.screen, translate(x + item.width / 2, y + item.height / 2), scale(state.scale ?? 1), translate(-x - item.width / 2, -y - item.height / 2));
+    if (item.texture) painter.draw(pivot, { x, y, width: item.width, height: item.height }, { kind: 'image', texture: item.texture, alpha: state.opacity });
+    else drawText(painter, pivot, item.sprite, x, y, state.opacity);
+  }
+
+  function drawCenterLayer(layer, top, state) {
+    drawMark(layer.mark, top.get(layer.mark), state.mark);
+    if (layer.kicker) drawText(painter, painter.screen, layer.kicker, centered(layer.kicker), top.get(layer.kicker) + state.kicker.y, state.kicker.opacity);
+    drawWords(painter, painter.screen, layer.title, centered(layer.title), top.get(layer.title), state.wordOffsets);
+    if (layer.sub) drawText(painter, painter.screen, layer.sub, centered(layer.sub), top.get(layer.sub) + state.sub.y, state.sub.opacity);
+  }
+
+  function drawScene(time) {
+    const state = scene.at(time);
+    const view = painter.camera(state.camera);
+    const panX = state.camera.x - STAGE.width / 2;
+    const panY = state.camera.y - STAGE.height / 2;
+
+    painter.blend(false);
+    painter.draw(painter.screen, { x: 0, y: 0, ...STAGE }, {
+      kind: 'backdrop',
+      color: tint.bg,
+      color2: tint.vignette,
+      glows: glows.map((glow) => ({
+        color: [glow.color[0], glow.color[1], glow.color[2], glow.color[3] * style.background.glow],
+        x: glow.anchor[0] + Math.sin(time * 0.21 + glow.phase) * 90 - panX * glow.depth,
+        y: glow.anchor[1] + Math.cos(time * 0.17 + glow.phase) * 70 - panY * glow.depth,
+        radius: GLOW_RADIUS * (1 + Math.sin(time * 0.13 + glow.phase) * 0.08),
+      })),
+    });
+    painter.blend(true);
+
+    // ---- The browser window, in camera space
+    const win = state.window;
+    if (win.opacity > 0.002) {
+      const pivot = { x: windowRect.x + windowRect.width / 2, y: windowRect.y + windowRect.height };
+      const group = compose(view, translate(pivot.x, pivot.y + win.y), rotateX(win.rotateX), scale(win.scale), translate(-pivot.x, -pivot.y));
+      const spread = 200;
+      // Light follows the tilt: the shadow falls away from it.
+      painter.draw(group, { x: windowRect.x - spread + state.camera.tiltY * -6.8, y: windowRect.y - spread + (36 + state.camera.tiltX * 3) * 2.2, width: windowRect.width + spread * 2, height: windowRect.height + spread * 2 },
+        { kind: 'shape', inset: spread, radius: WINDOW_RADIUS, soft: 130, color: tint.shadow, alpha: win.opacity });
+      painter.draw(group, windowRect, { kind: 'shape', radius: WINDOW_RADIUS, color: windowColor, alpha: win.opacity });
+      painter.draw(group, { x: windowRect.x, y: windowRect.y, width: windowRect.width, height: CHROME_HEIGHT }, { kind: 'image', texture: chromeBars[state.screens.url].texture, alpha: win.opacity, clip: windowClip });
+
+      const drawScreen = (id, alpha, matrix) => {
+        const screen = screens[id];
+        painter.draw(matrix, viewRect, { kind: 'image', texture: screen.texture, alpha: alpha * win.opacity, clip: windowClip, uv: [0, state.scroll[id] / screen.pageHeight, 1, viewport.height / screen.pageHeight] });
+      };
+      if (state.screens.previous) drawScreen(state.screens.previous, 1, group);
+      const settle = 1 + 0.014 * (1 - state.screens.mix);
+      const origin = { x: viewRect.x + viewRect.width / 2, y: viewRect.y + viewRect.height * 0.3 };
+      drawScreen(state.screens.current, state.screens.mix, settle === 1 ? group : compose(group, translate(origin.x, origin.y), scale(settle), translate(-origin.x, -origin.y)));
+
+      state.highlights.forEach((spot, index) => {
+        if (spot.opacity <= 0.002) return;
+        const base = scene.highlights[index].rect;
+        const grow = spot.scale - 1;
+        const hole = { x: viewRect.x + base.x - (base.width * grow) / 2, y: viewRect.y + base.y - (base.height * grow) / 2, width: base.width * spot.scale, height: base.height * spot.scale, radius: 12 };
+        painter.draw(group, viewRect, { kind: 'spotlight', color: tint.dim, color2: tint.accent, stroke: 3, hole, alpha: spot.opacity * win.opacity, clip: windowClip });
+        const chip = labels[index];
+        if (!chip) return;
+        const alpha = spot.opacity * spot.label.opacity * win.opacity;
+        const y = (scene.highlights[index].labelBelow ? hole.y + hole.height + 12 : hole.y - 12 - chip.height) + spot.label.y;
+        painter.draw(group, { x: hole.x - 3, y, width: chip.width, height: chip.height }, { kind: 'shape', radius: 10, color: tint.accent, alpha });
+        drawText(painter, group, chip.label, hole.x - 3 + 16, y + 9, alpha);
+      });
+    }
+
+    // ---- Cursor: placed in the world, drawn at a constant screen size
+    if (state.cursor.opacity > 0.002) {
+      const point = painter.project(view, state.cursor.x, state.cursor.y);
+      if (state.cursor.ringOpacity > 0.002) {
+        const radius = 36 * state.cursor.ringScale;
+        const ring = { x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2 };
+        const alpha = state.cursor.ringOpacity * state.cursor.opacity;
+        painter.draw(painter.screen, ring, { kind: 'shape', radius, color: [tint.accent[0], tint.accent[1], tint.accent[2], 0.15], alpha });
+        painter.draw(painter.screen, ring, { kind: 'shape', radius, stroke: 3, color: tint.accent, alpha });
+      }
+      const press = compose(painter.screen, translate(point.x, point.y), scale(state.cursor.press), translate(-point.x, -point.y));
+      painter.draw(press, { x: point.x - POINTER_HOTSPOT.x, y: point.y - POINTER_HOTSPOT.y, width: pointer.width, height: pointer.height }, { kind: 'image', texture: pointer.texture, alpha: state.cursor.opacity });
+    }
+
+    // ---- Caption cards and brand layers, in screen space
+    state.cards.forEach((card, index) => {
+      if (card.opacity <= 0.002) return;
+      const { rect, title, caption } = cards[index];
+      const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 + card.y };
+      const matrix = compose(painter.screen, translate(center.x, center.y), scale(card.scale), translate(-center.x, -center.y));
+      const box = { ...rect, y: rect.y + card.y };
+      painter.draw(matrix, { x: box.x - 60, y: box.y - 40, width: box.width + 120, height: box.height + 120 }, { kind: 'shape', inset: 60, radius: CARD.radius, soft: 46, color: [0, 0.03, 0.08, 0.34], alpha: card.opacity });
+      painter.draw(matrix, box, { kind: 'shape', radius: CARD.radius, color: tint.card, alpha: card.opacity });
+      drawWords(painter, matrix, title, box.x + CARD.padX, box.y + CARD.padTop, card.wordOffsets, card.opacity);
+      if (caption) drawText(painter, matrix, caption, box.x + CARD.padX, box.y + CARD.padTop + title.height + CARD.captionGap + card.caption.y, card.opacity * card.caption.opacity);
+    });
+    if (state.intro) drawCenterLayer(intro, introTop, state.intro);
+    if (state.outro) drawCenterLayer(outro, outroTop, { ...state.outro, kicker: { opacity: 0, y: 0 } });
+  }
+
+  // ---- Frames, blur samples and encoding
+  const outFps = plan.outFps ?? 30;
+  const perFrame = Math.round((plan.fps ?? outFps) / outFps);
+  const openSamples = plan.shutter ? Math.max(1, Math.round((perFrame * plan.shutter) / 360)) : 1;
+  const totalFrames = Math.round(scene.duration * outFps);
+  const sampleTimes = (frame) => {
+    const times = Array.from({ length: openSamples }, (_, sample) => (frame * perFrame + sample) / (outFps * perFrame));
+    return times.some(scene.isMoving) ? times : [times[0]];
+  };
+  const frameRange = (index) => ({
+    first: Math.min(totalFrames, Math.round(scene.scenes[index].start * outFps)),
+    end: index === scene.scenes.length - 1 ? totalFrames : Math.min(totalFrames, Math.round(scene.scenes[index].end * outFps)),
+  });
+
+  window.still = (time) => {
+    painter.frame([time], drawScene);
+    painter.finish();
+  };
+
+  // Encodes one scene as a self-contained H.264 stream and uploads it in order to `uploadUrl`.
+  // Constant quality keeps holds tiny and spends bits on motion. Only hardware encoders offer it here,
+  // so a machine without one falls back to a bitrate target.
+  window.renderSegment = async ({ index, uploadUrl, bitrate, quantizer, hardware }) => {
+    const base = { codec: 'avc1.640028', width: canvas.width, height: canvas.height, framerate: outFps, avc: { format: 'annexb' } };
+    const constantQuality = { ...base, bitrateMode: 'quantizer', hardwareAcceleration: hardware === 'prefer-software' ? hardware : 'prefer-hardware' };
+    const useQuantizer = (await VideoEncoder.isConfigSupported(constantQuality)).supported;
+    const config = useQuantizer ? constantQuality : { ...base, bitrate, hardwareAcceleration: hardware };
+    const { first, end } = frameRange(index);
+    let pending = [];
+    let pendingBytes = 0;
+    let uploads = Promise.resolve();
+    let bytes = 0;
+    let failure = null;
+    const upload = () => {
+      if (!pending.length) return;
+      const body = new Blob(pending);
+      pending = [];
+      pendingBytes = 0;
+      uploads = uploads.then(() => fetch(uploadUrl, { method: 'POST', body })).then((response) => {
+        if (!response.ok) throw new Error(`Upload failed with ${response.status}`);
+      });
+    };
+    const encoder = new VideoEncoder({
+      output: (chunk) => {
+        const data = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(data);
+        pending.push(data);
+        pendingBytes += data.length;
+        bytes += data.length;
+        if (pendingBytes > 4_000_000) upload();
+      },
+      error: (error) => { failure = error; },
+    });
+    encoder.configure(config);
+    let blurred = 0;
+    for (let frame = first; frame < end; frame++) {
+      const times = sampleTimes(frame);
+      if (times.length > 1) blurred++;
+      painter.frame(times, drawScene);
+      const videoFrame = new VideoFrame(canvas, { timestamp: ((frame - first) * 1e6) / outFps, duration: 1e6 / outFps });
+      encoder.encode(videoFrame, { keyFrame: (frame - first) % KEYFRAME_EVERY === 0, ...(useQuantizer ? { avc: { quantizer } } : {}) });
+      videoFrame.close();
+      while (encoder.encodeQueueSize > 3) await new Promise((resolve) => setTimeout(resolve, 0));
+      if (failure) throw failure;
+    }
+    await encoder.flush();
+    encoder.close();
+    upload();
+    await uploads;
+    if (failure) throw failure;
+    return { frames: end - first, blurred, bytes, constantQuality: useQuantizer };
+  };
+
+  // ---- QA: text that does not fit is a plan problem, caught before any frame is encoded
+  window.qaIssues = () => {
+    const issues = [];
+    const check = (name, sprite, x, y) => {
+      if (!sprite) return;
+      if (sprite.overflows) issues.push(`A word is wider than its block: "${name}"`);
+      if (x < SAFE.left - 1 || x + sprite.width > SAFE.right + 1 || y < SAFE.top - 1 || y + sprite.height > SAFE.bottom + 1) issues.push(`Outside safe area: "${name}"`);
+    };
+    for (const [layer, top, texts] of [[intro, introTop, scene.intro], [outro, outroTop, scene.outro]]) {
+      check(texts.title, layer.title, centered(layer.title), top.get(layer.title));
+      if (layer.sub) check(texts.subtitle, layer.sub, centered(layer.sub), top.get(layer.sub));
+      if (layer.kicker) check(texts.kicker, layer.kicker, centered(layer.kicker), top.get(layer.kicker));
+    }
+    cards.forEach((card, index) => {
+      check(scene.cards[index].title, card.title, card.rect.x + CARD.padX, card.rect.y + CARD.padTop);
+      if (card.rect.x + card.rect.width > SAFE.right || card.rect.y < SAFE.top) issues.push(`Card outside safe area: "${scene.cards[index].title}"`);
+    });
+    return issues;
+  };
+
+  // A scene's pixels depend on everything scheduled up to it. Of the next scene only the cursor reaches
+  // back: it can appear a few frames before its first move. Narration text never changes a pixel.
+  const visualScenes = [story.intro, ...story.beats, story.outro].map(({ say, sayAt, ...visual }) => visual);
+  const shared = JSON.stringify({ screens: story.screens, viewport });
+  const sourceOf = (index) => shared + JSON.stringify(visualScenes.slice(0, index + 1)) + JSON.stringify({ nextCursorAt: visualScenes[index + 1]?.cursor?.[0]?.at ?? null });
+  window.meta = {
+    W: canvas.width, H: canvas.height, theme: style.theme, style: plan.style, post: style.post,
+    music: plan.music ?? style.audio.music, bpm: plan.bpm ?? style.audio.bpm, audio: plan.audio,
+    duration: scene.duration, fps: outFps * perFrame, outFps, shutter: plan.shutter, output: plan.output,
+    cuts: scene.scenes.map((item) => item.start), qaTimes: scene.qaTimes, scenes: scene.scenes.map((item) => item.name), copy: scene.copy,
+    segments: scene.scenes.map((item, index) => ({ ...item, ...frameRange(index), source: sourceOf(index) })),
+  };
+  window.still(0);
+  return true;
+}
+window.ready = main();
+</script></body></html>

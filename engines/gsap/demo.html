@@ -23,7 +23,7 @@ html,body{overflow:hidden;background:#000}
 .card h2{text-wrap:balance;font-size:42px;line-height:1.14;font-weight:700;letter-spacing:-.03em;color:var(--card-text)}
 .card p{margin-top:10px;font-size:25px;line-height:1.35;font-weight:500;color:var(--card-muted)}
 .center{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;text-align:center}
-.kicker{font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.kicker{font-size:22px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--kicker)}
 .headline{max-width:1500px;text-wrap:balance;font-size:96px;line-height:1.04;font-weight:800;letter-spacing:-.045em;color:var(--text)}
 .sub{max-width:1100px;font-size:34px;line-height:1.3;font-weight:500;color:var(--muted)}
 .mark{font-size:64px;font-weight:800;letter-spacing:-.04em;color:var(--text)}
@@ -41,6 +41,8 @@ const HERO_TILT = { tiltX: 8, tiltY: -11 };
 // Targets sit slightly above center so the caption card rarely covers what the camera is looking at.
 const CAPTION_LIFT = 46;
 const MAX_ZOOM = 1.85;
+// How much backdrop may show past a window edge while the camera is zoomed in (screen px).
+const EDGE_MARGIN = 90;
 
 async function loadJson(file) {
   const response = await fetch(ROOT + file);
@@ -65,7 +67,9 @@ function resolveColors(style, brand, plan) {
     if (!color) throw new Error(`Style color ${value} is not in the brand palette`);
     return color;
   };
-  const merged = { ...style.colors, ...brand.demoColors, ...plan.colors };
+  // brand.demoColors is either one flat set or one set per style name, so a brand can dress several styles.
+  const brandColors = brand.demoColors?.[plan.style] ?? (typeof Object.values(brand.demoColors ?? {})[0] === 'object' && !Array.isArray(Object.values(brand.demoColors)[0]) ? {} : brand.demoColors);
+  const merged = { ...style.colors, ...brandColors, ...plan.colors };
   return Object.fromEntries(Object.entries(merged).map(([key, value]) => [key, Array.isArray(value) ? value.map(pick) : pick(value)]));
 }
 
@@ -111,7 +115,7 @@ async function main() {
   const windowRect = { x: (W - WINDOW_WIDTH) / 2, y: (H - viewHeight - CHROME_HEIGHT) / 2, width: WINDOW_WIDTH, height: viewHeight + CHROME_HEIGHT };
 
   const stage = document.getElementById('stage');
-  stage.style.cssText += `;font-family:Demo,sans-serif;background:${colors.bg};--accent:${colors.accent};--accent-text:${colors.accentText};--text:${colors.text};--muted:${colors.muted};` +
+  stage.style.cssText += `;font-family:Demo,sans-serif;background:${colors.bg};--accent:${colors.accent};--kicker:${colors.kicker ?? colors.accent};--accent-text:${colors.accentText};--text:${colors.text};--muted:${colors.muted};` +
     `--card:${colors.card};--card-line:${colors.cardLine};--card-text:${colors.cardText};--card-muted:${colors.cardMuted};--dim:${colors.dim};--shadow:${colors.shadow};` +
     `--hairline:${dark ? 'rgba(255,255,255,.1)' : 'rgba(8,16,32,.08)'};--chrome-dot:${dark ? '#3b4658' : '#d5dae2'};--chrome-pill:${dark ? '#111a2b' : '#eef1f5'};--chrome-text:${dark ? '#8fa0b8' : '#6b7686'}`;
 
@@ -161,6 +165,17 @@ async function main() {
     return { x: windowRect.x + box.x * pageScale, y: windowRect.y + CHROME_HEIGHT + (box.y - scrollY) * pageScale, width: box.width * pageScale, height: box.height * pageScale };
   }
   const fullPose = { ...camera.frame(windowRect, 0.88), tiltX: 0, tiltY: 0 };
+  // A tall or off-center target must not shrink the window or push it to one side of the frame:
+  // the camera never pulls back past the overview and never looks beyond the window edges.
+  function keepWindowInFrame(pose) {
+    const zoom = Math.max(pose.zoom, fullPose.zoom);
+    const clampAxis = (value, start, size, frameSize) => {
+      const reach = frameSize / (2 * zoom) - EDGE_MARGIN / zoom;
+      const min = start + reach, max = start + size - reach;
+      return min > max ? start + size / 2 : Math.min(max, Math.max(min, value));
+    };
+    return { ...pose, zoom, x: clampAxis(pose.x, windowRect.x, windowRect.width, W), y: clampAxis(pose.y, windowRect.y, windowRect.height, H) };
+  }
 
   function centeredText(parent, className, text, css) {
     const element = make('div', className, parent, css, text);
@@ -228,11 +243,13 @@ async function main() {
       const at = beatStart + key.at;
       const duration = key.duration ?? 1.3;
       const framed = key.focus === 'full' ? fullPose : camera.frame(worldRect(screen, key.focus, at + duration), key.fill ?? 0.6, MAX_ZOOM);
-      const frame = { ...framed, y: framed.y + CAPTION_LIFT / framed.zoom };
+      const frame = keepWindowInFrame({ ...framed, y: framed.y + CAPTION_LIFT / framed.zoom });
       const [tiltX, tiltY] = key.tilt ?? [0, 0];
       camera.moveTo({ ...frame, tiltX, tiltY, roll: key.roll ?? 0 }, at, duration, { ease: key.ease ?? 'glide', dip: key.dip ?? 0 });
     }
 
+    // A pointer parked over the page reads as a mistake: it leaves during beats that do not use it.
+    if (!beat.cursor?.length && cursorShown) { cursor.hide(beatStart + 0.25); cursorShown = false; }
     for (const move of beat.cursor ?? []) {
       const at = beatStart + move.at;
       const duration = move.duration ?? 0.9;
@@ -315,6 +332,14 @@ async function main() {
     dots.style.transform = `translate(${(-panX * 0.06).toFixed(2)}px,${(-panY * 0.06).toFixed(2)}px)`;
   };
 
+  // Holds outnumber moves in a walkthrough. The renderer captures a still frame once instead of once per
+  // motion-blur sample, so it needs to know when anything on screen is animating.
+  const FRAME_PAD = 1 / 24;
+  const tweenWindows = timeline.getChildren(false, true, true).filter((child) => child.totalDuration() > 0).map((child) => [child.startTime() - FRAME_PAD, child.startTime() + child.totalDuration() + FRAME_PAD]);
+  window.isMoving = (time) =>
+    tweenWindows.some(([from, to]) => time >= from && time <= to) ||
+    [time - FRAME_PAD, time, time + FRAME_PAD].some((moment) => camera.track.active(moment) || cursor.isBusy(moment) || Object.values(screens).some((screen) => screen.scroll.active(moment)));
+
   function isVisible(element) {
     for (let node = element; node && node !== stage; node = node.parentElement) {
       const css = getComputedStyle(node);
@@ -333,9 +358,14 @@ async function main() {
     }
     return issues;
   };
+  // A scene's pixels depend on everything scheduled up to it, and the next scene can reach back a few
+  // frames (the cursor appears early, the outro hides it early). Narration text never changes a pixel.
+  const visualScenes = [story.intro, ...story.beats, story.outro].map(({ say, sayAt, ...visual }) => visual);
+  const sharedSource = JSON.stringify({ screens: story.screens, viewport });
+  const segments = sceneNames.map((name, index) => ({ name, start: cuts[index], end: cuts[index + 1] ?? total, source: sharedSource + JSON.stringify(visualScenes.slice(0, index + 2)) }));
   window.meta = {
     W, H, theme: style.theme, style: plan.style, post: style.post, music: plan.music ?? style.audio.music, bpm: plan.bpm ?? style.audio.bpm, audio: plan.audio,
-    duration: total, fps: plan.fps, outFps: plan.outFps, shutter: plan.shutter, output: plan.output, cuts, qaTimes, scenes: sceneNames, copy,
+    duration: total, fps: plan.fps, outFps: plan.outFps, shutter: plan.shutter, output: plan.output, cuts, qaTimes, scenes: sceneNames, copy, segments,
   };
   window.seek(0);
   return true;

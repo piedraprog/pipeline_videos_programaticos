@@ -1,5 +1,29 @@
 # Agent instructions
 
+## Working format
+
+How a video gets made in this repository, in order. The sections below are the detail for each step.
+
+1. **Decide where it lives.** This repository is public. Anything for a client or an unreleased product goes under `private/` (git-ignored), mirroring the public layout: `private/brands/<client>/`, `private/plans/<name>.json`, output in `private/projects/<name>/`. Public examples use the fictional FORM brand.
+2. **Capture the screens.** Run the capture stage against the real app or prototype at a desktop viewport, naming every element the camera, cursor or spotlight will visit in the screenshot's `"boxes"`. Never capture a screen that is empty or still loading; wait on the real content. Copy the PNGs and `*.boxes.json` into the brand kit.
+3. **Write the plan.** One JSON file: brand, style, `"template": "demo"`, `"renderer": "canvas"`, and a `story` of `intro`, `beats` and `outro`. Each scene may carry a `say` line for narration. Music is `"musicFile"` (a track under `private/`) or a synthesized bed.
+4. **Check before rendering.** `bun run render -- <plan> --qa-only` writes one still per scene and a contact sheet; read it. `bun run voice -- <plan> --check` synthesizes the narration and fails if a line does not fit its scene.
+5. **Render, then add voice.** `bun run render -- <plan>` writes `<name>.mp4` (picture and music). `bun run voice -- <plan>` writes `<name>-voz-<provider>.mp4` (narration over ducked music) without touching the picture.
+6. **Iterate by parts.** Never start over for a small change. What each kind of change costs:
+
+   | You change | What runs again |
+   |---|---|
+   | Narration text, voice, pronunciation, music or volume | `bun run voice` only; no picture is rendered |
+   | Text, camera, cursor or highlight inside one scene | That scene's clip |
+   | The duration of a scene | That clip and the ones after it |
+   | Template code, style, brand colors or a screenshot | Every clip (still about 15 s per minute of video with a GPU) |
+
+7. **Review like a viewer.** Extract frames around every camera move and screen change and look at them, and have a person watch the result. A passing exit code or QA gate is not proof that it looks or sounds right; say what was and was not verified.
+8. **Deliver.** `<name>.mp4` is the piece without voice. A `-voz-<provider>` file is a draft with synthetic narration for internal review; the final narration is recorded by a person (see Delivery rules). State claims the video makes must be true of what was captured.
+9. **Ship changes to the repository.** One change per branch and pull request, Conventional Commits, `bun test` and `bunx tsc --noEmit` green. `main` is protected: changes arrive by pull request. The privacy hook runs on every commit and push; never bypass it.
+
+Which renderer: `"renderer": "canvas"` for `demo` plans (WebGL, encoded in the browser, cached per scene). The DOM renderer (`tools/render.mjs`) remains for the other templates (`index`, `corporate`, `continuous`, `overlay`, `stock`, `whatsapp`) and as the visual reference for `demo`.
+
 ## Product boundaries
 
 - This is a filesystem-based web-to-video CLI with two engines: **remotion** (capture manifest → `templates/`, silent) and **gsap** (`engines/gsap/`: brand kit + style + story plans, 60fps seek capture, synthesized music/SFX). Do not add a database or voice-over unless the user explicitly changes scope. The no-audio rules below apply to the Remotion engine only.
@@ -116,8 +140,30 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
    - `highlight`: `{at, box, label, duration}`. Dims the rest of the page.
    - `scroll`: `{at, to, duration}` for full-page captures; `to` is a box name or a page y.
 3. **Choreography rules.** Do not move everything at once: camera first, then the caption, then the cursor. End a beat with a click and switch screen on the next beat so the change has a cause. Leave at least 1.2 s of hold after the camera settles. Alternate the tilt sign between beats; keep it within ±6 degrees while text must be read. Never overlap two camera moves in time.
-4. **Motion blur.** `"fps": 240, "outFps": 30, "shutter": 180` renders 8 sub-frames per output frame and averages the 4 inside the open shutter. Use `"fps": 60` without `shutter` for fast drafts. A 30 s piece takes about 3 minutes at full quality.
-5. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
+4. **Motion blur.** `"fps": 240, "outFps": 30, "shutter": 180` renders 8 sub-frames per output frame and averages the 4 inside the open shutter. Use `"fps": 60` without `shutter` for fast drafts.
+5. **Render cost.** Capture is the slow stage, and three things keep it down:
+   - Frames are cached per scene in `<output>/frame-cache/`. Editing one scene re-captures that scene and the one before it; editing narration, music or volume re-captures nothing. `--fresh` ignores the cache.
+   - A still frame is captured once instead of once per blur sample. The template reports motion through `window.isMoving(t)`; a template without it gets every sample captured.
+   - Four capture pages is the measured optimum (`--workers=N` overrides). More pages are slower because they share one GPU process.
+   - `"supersample": 2` captures at twice the resolution and scales down for sharper text, at roughly 3.5x the capture time; `"crf"` sets the compression (default 17, lower is better). Iterate without them and add them for the final render. `"outputHeight": 720` delivers 720p from the same 1080p capture.
+6. **Canvas renderer (use it for `demo` plans).** `"renderer": "canvas"` in the plan, or `--renderer=canvas`, draws the same choreography with WebGL and encodes H.264 inside the browser (`engines/gsap/demo-canvas.html`, `lib/demoScene.js`, `tools/render-canvas.mjs`). No screenshots and no ffmpeg encode: an 86 s 1080p piece renders in about half a minute on a laptop with a GPU.
+   - Each scene is its own clip in `<output>/clip-cache/`, keyed by what it shows; the video is the clips joined without re-encoding. Changing one scene renders one clip; changing narration, music or volume renders none. `--fresh` ignores the cache.
+   - Quality is constant-quantizer on a hardware encoder (`"videoQuantizer"`, default 22, lower is sharper and larger) and falls back to `"videoBitrate"` without one. `"outputHeight": 720` renders natively at 720p.
+   - Differences from the DOM template: caption cards are flat translucent (no backdrop blur), the window does not blur as it leaves in the outro, and words rise without the slight rotation. `supersample` and `crf` do not apply.
+   - `lib/demoScene.js` is the single description of the choreography for this renderer and is pure: change timing there, not in the page.
+7. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
+
+## Runbook: draft narration (`bun run voice`)
+
+Synthetic voice is allowed only as an internal draft (see Delivery rules). It never replaces the recorded voice in a delivered piece.
+
+1. Keys live in `.env` (copy `.env.example`; git-ignored): `ELEVENLABS_API_KEY`, `OPENAI_API_KEY`. Never paste a key into a plan, a commit or the chat.
+2. Write one `say` line per scene in the plan (`story.intro.say`, `story.beats[].say`, `story.outro.say`) and a `voice` block: `{"provider": "elevenlabs", "elevenlabs": {"voiceId": "..."}, "openai": {"voiceId": "cedar", "instructions": "..."}}`. `bun run voice -- --list-voices` prints the ElevenLabs voices of the account.
+3. Check the timing before the full render: `bun run render -- <plan>.json --qa-only`, then `bun run voice -- <plan>.json --check` synthesizes the lines and reports whether each one fits. Each line starts 0.4 s into its scene and may keep talking over the silent beats that follow; the command fails if it would run into the next narrated scene. Then render and run `bun run voice -- <plan>.json [--provider=openai]`.
+4. Output: `<output>/<name>-voz-<provider>.mp4` (voice over ducked music, video untouched) and `marcas-de-tiempo.txt`. Audio is cached per line in `<output>/voice/`, so rerunning costs nothing unless the text or voice changed.
+5. Music: `"musicFile": "<path>"` in the plan uses that track instead of the synthesized bed (looped or cut to length, faded in and out). Keep licensed or client tracks under `private/`. `bun run voice` rebuilds the music on every run, so changing `musicFile` or `music` does not need a new picture render. The `executive` bed has no cut accents.
+6. `voice.pronounce` maps a written word to how it should be said (`{"SAP": "sap"}` reads the acronym as a word); on-screen copy and the timestamps keep the written form. `voice.musicVolume` sets the music level under the voice (default 0.75). A track shorter than the piece is repeated with a crossfade.
+7. The narration goes through the same forbidden-messaging gate as on-screen copy. OpenAI's usage policy requires telling listeners the voice is AI-generated.
 
 ## Public repository: private work goes in `private/`
 
@@ -127,6 +173,6 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
 - Before the first private project on a machine, check that `.private-terms` exists and lists the client and project names.
 
 ## Delivery rules (Jose, 2026-10-14)
-- No se genera voice over/TTS; la locución la graba Jose. Do not synthesize or mux any voice. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
+- La locución final la graba Jose. Do not deliver a piece with synthetic voice. Exception (Jose, 2026-11-23): `bun run voice` may synthesize a draft narration for internal review; its file is named `-voz-<provider>` and is never the deliverable. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
 - Videos are delivered without intro or outro. Bumpers (`bun run bumper`) are separate assets; Jose adds them in post. Do not concatenate bumpers or use an `outro` scene at the end of a piece; end cleanly on the last content scene with the music faded out.
 - Style `playful-sticker` is deprecated/not allowed.

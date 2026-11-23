@@ -1,8 +1,28 @@
-# Web-to-video demo pipeline
+# Programmatic video pipeline
 
-Create vertical product demos from real browser interactions. A JSON plan drives Playwright capture; Remotion composes the screenshots into a 1080×1920 MP4. Editorial mode supports independently scheduled background, graphics, logo, text and phone layers, with frame-driven depth entrances and accelerated screen transitions at 60 fps. Each project is stored in its own folder; there is no database. Audio and voice-over are out of scope.
+Make product videos from a JSON plan: real screens captured from a web app, a moving camera, cursor, spotlights, captions, music and optional narration, rendered to MP4.
 
-There are two engines. **GSAP** (`engines/gsap/`) renders brand videos and bumpers from a brand kit, a style and a story plan, with synthesized music and QA gates. **Remotion** (`templates/`) turns a Playwright capture into a silent phone-frame demo. See [GSAP engine](#gsap-engine-brand-videos--bumpers) below.
+- **Product demos** (`"template": "demo"`): a desktop app walkthrough in 16:9. The canvas renderer draws it with WebGL and encodes H.264 inside the browser, one cached clip per scene. An 86-second 1080p video renders in about half a minute on a laptop with a GPU, and changing one scene re-renders only that scene.
+- **Brand pieces and bumpers** (`engines/gsap/`): vertical and square videos from a brand kit, a style and a story, with synthesized music and QA gates.
+- **Phone-frame demos** (`templates/`, Remotion): a Playwright capture composed into a silent 1080×1920 video.
+
+## Product demo quick start
+
+```bash
+bun run setup                                                        # dependencies, Chromium, ffmpeg, Python packages, git hooks
+bun run render -- plans/form-product-demo.json --renderer=canvas --qa-only   # one still per scene + contact sheet
+bun run render -- plans/form-product-demo.json --renderer=canvas             # projects/form-product-demo/form-product-demo.mp4
+```
+
+The example uses FORM, a fictional store that ships with the repository. To make your own:
+
+1. Capture your app with named element boxes (`plans/form-desktop-capture.json` is the model) and copy the screenshots into a brand kit.
+2. Write a plan with `intro`, `beats` and `outro`; each beat points the camera, cursor and spotlight at boxes by name.
+3. Optional narration: add a `say` line per scene and a `voice` block, put `ELEVENLABS_API_KEY` or `OPENAI_API_KEY` in `.env` (see `.env.example`), then `bun run voice -- <plan>.json`.
+
+Changes are cheap by design: narration, music and volume never re-render the picture, and a change inside one scene re-renders one clip. The full working format, plan fields and choreography rules are in [AGENTS.md](AGENTS.md).
+
+You need Bun 1.3+, Node.js 24+, Python 3.10+ and Google Chrome. Hardware video encoding is used when the machine has it.
 
 ## License
 
@@ -37,7 +57,11 @@ A guardrail (`scripts/privacy-check.ts`) runs on every commit and push, and agai
 
 The guardrail only sees what is about to enter git. It does not rewrite history and it cannot read text inside images.
 
-## Requirements
+## Remotion engine: phone-frame demos
+
+The rest of this section describes the original engine: a capture composed by Remotion into a vertical phone-frame video.
+
+### Requirements
 
 - Bun 1.3+ for scripts and rendering
 - Node.js 24+ for Playwright capture (important on Windows)
