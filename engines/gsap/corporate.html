@@ -6,7 +6,7 @@
 .card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--wine)}
 .icon{position:absolute;left:30px;top:36px;width:52px;height:52px;color:var(--wine)}
 .moving{will-change:transform,opacity}.rule{position:absolute;height:2px;background:var(--line)}
-</style><script src="lib/gsap.min.js"></script></head><body><main id="stage"></main>
+</style><script src="../../node_modules/gsap/dist/gsap.min.js"></script></head><body><main id="stage"></main>
 <script type="module">
 const root='../../';
 async function json(file){const response=await fetch(root+file);if(!response.ok)throw new Error(`Missing resource: ${file}`);return response.json()}
