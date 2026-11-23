@@ -16,4 +16,6 @@ if(!py)fail('Python 3.10+ not found. Windows: winget install Python.Python.3.12;
 else{const has=()=>spawnSync(py,['-c','import numpy,PIL'],{stdio:'ignore'}).status===0;
   if(!has()){const a=['-m','pip','install','--user','-r','requirements.txt'];if(!run(py,a,{shell:false}))run(py,[...a,'--break-system-packages'],{shell:false})}
   has()?ok(`${py} with numpy + pillow`):fail(`pip install -r requirements.txt failed for ${py}.`)}
+console.log('[hooks] privacy guardrail');
+run('git',['config','core.hooksPath','.githooks'])?ok('git hooks: .githooks (pre-commit and pre-push run scripts/privacy-check.ts)'):fail('could not set core.hooksPath; run: git config core.hooksPath .githooks');
 console.log(bad?`\nSetup incomplete: ${bad} problem(s) above.`:'\nSetup OK. Try: bun run render -- plans/selltly-9x16-light.json --qa-only');process.exit(bad?1:0);

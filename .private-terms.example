@@ -1,0 +1,7 @@
+# Copy to .private-terms (git-ignored) and list one term per line.
+# Any staged file whose path or text contains a term is rejected.
+# Matching ignores case and accents. Use client names, internal project
+# names, people, domains: anything that must never appear in this public repo.
+#
+# acme corp
+# internal-project-codename
