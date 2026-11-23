@@ -1,5 +1,29 @@
 # Agent instructions
 
+## Working format
+
+How a video gets made in this repository, in order. The sections below are the detail for each step.
+
+1. **Decide where it lives.** This repository is public. Anything for a client or an unreleased product goes under `private/` (git-ignored), mirroring the public layout: `private/brands/<client>/`, `private/plans/<name>.json`, output in `private/projects/<name>/`. Public examples use the fictional FORM brand.
+2. **Capture the screens.** Run the capture stage against the real app or prototype at a desktop viewport, naming every element the camera, cursor or spotlight will visit in the screenshot's `"boxes"`. Never capture a screen that is empty or still loading; wait on the real content. Copy the PNGs and `*.boxes.json` into the brand kit.
+3. **Write the plan.** One JSON file: brand, style, `"template": "demo"`, `"renderer": "canvas"`, and a `story` of `intro`, `beats` and `outro`. Each scene may carry a `say` line for narration. Music is `"musicFile"` (a track under `private/`) or a synthesized bed.
+4. **Check before rendering.** `bun run render -- <plan> --qa-only` writes one still per scene and a contact sheet; read it. `bun run voice -- <plan> --check` synthesizes the narration and fails if a line does not fit its scene.
+5. **Render, then add voice.** `bun run render -- <plan>` writes `<name>.mp4` (picture and music). `bun run voice -- <plan>` writes `<name>-voz-<provider>.mp4` (narration over ducked music) without touching the picture.
+6. **Iterate by parts.** Never start over for a small change. What each kind of change costs:
+
+   | You change | What runs again |
+   |---|---|
+   | Narration text, voice, pronunciation, music or volume | `bun run voice` only; no picture is rendered |
+   | Text, camera, cursor or highlight inside one scene | That scene's clip |
+   | The duration of a scene | That clip and the ones after it |
+   | Template code, style, brand colors or a screenshot | Every clip (still about 15 s per minute of video with a GPU) |
+
+7. **Review like a viewer.** Extract frames around every camera move and screen change and look at them, and have a person watch the result. A passing exit code or QA gate is not proof that it looks or sounds right; say what was and was not verified.
+8. **Deliver.** `<name>.mp4` is the piece without voice. A `-voz-<provider>` file is a draft with synthetic narration for internal review; the final narration is recorded by a person (see Delivery rules). State claims the video makes must be true of what was captured.
+9. **Ship changes to the repository.** One change per branch and pull request, Conventional Commits, `bun test` and `bunx tsc --noEmit` green. `main` is protected: changes arrive by pull request. The privacy hook runs on every commit and push; never bypass it.
+
+Which renderer: `"renderer": "canvas"` for `demo` plans (WebGL, encoded in the browser, cached per scene). The DOM renderer (`tools/render.mjs`) remains for the other templates (`index`, `corporate`, `continuous`, `overlay`, `stock`, `whatsapp`) and as the visual reference for `demo`.
+
 ## Product boundaries
 
 - This is a filesystem-based web-to-video CLI with two engines: **remotion** (capture manifest → `templates/`, silent) and **gsap** (`engines/gsap/`: brand kit + style + story plans, 60fps seek capture, synthesized music/SFX). Do not add a database or voice-over unless the user explicitly changes scope. The no-audio rules below apply to the Remotion engine only.
