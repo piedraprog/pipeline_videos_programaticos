@@ -1,0 +1,23 @@
+{
+  "engine": "gsap",
+  "template": "overlay",
+  "brand": "brands/monumental/brand.json",
+  "style": "overlay-athletic",
+  "output": "projects/monumental-cierre-2026",
+  "format": "9x16",
+  "alpha": true,
+  "audio": "none",
+  "fps": 60,
+  "outFps": 30,
+  "duration": 42,
+  "story": {
+    "hook": { "at": 0, "lines": ["CADA BATAZO", "CADA SONRISA"], "small": "contaron una historia" },
+    "season": { "at": 5, "band": "CIERRE DE TEMPORADA", "big": "2025-2026" },
+    "question": { "at": 13, "lines": ["DE QUÉ ESTÁN", "HECHOS"] },
+    "values": { "at": 18, "words": ["TALENTO", "DISCIPLINA", "CORAZÓN"] },
+    "journey": { "at": 24, "lines": ["CELEBRAMOS EL", "CAMINO RECORRIDO"] },
+    "next": { "at": 30, "lines": ["VOLVEMOS", "A LA CARGA"], "season": "TEMPORADA 2026-2027" },
+    "future": { "at": 35, "lines": ["EL FUTURO SE", "CONSTRUYE AQUÍ"], "then": "JUEGO A JUEGO" },
+    "lockup": { "at": 39, "tagline": "Sembrando pasión, cosechando campeones" }
+  }
+}

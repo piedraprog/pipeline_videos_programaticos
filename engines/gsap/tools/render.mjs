@@ -15,7 +15,7 @@ const port=srv.address().port;
 const plan=JSON.parse(fs.readFileSync(path.join(ROOT,planArg)));
 const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[plan.format];
 const out=path.join(ROOT,plan.output);fs.mkdirSync(path.join(out,'qa'),{recursive:true});
-const b=await chromium.launch();const p=await b.newPage({viewport:{width:W,height:H}});
+const b=await chromium.launch({channel:'chrome',chromiumSandbox:true});const p=await b.newPage({viewport:{width:W,height:H}});
 p.on('pageerror',e=>console.error('page error',e));
 const pageUrl=`http://localhost:${port}/engines/gsap/${plan.template||'index'}.html?plan=${encodeURIComponent(planArg)}`;
 const open=async pg=>{await pg.goto(pageUrl);await pg.waitForFunction(()=>window.ready!==undefined,null,{timeout:60000});await pg.evaluate(()=>window.ready)};
@@ -28,6 +28,8 @@ const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 for(const txt of meta.copy)for(const w of forb){if(new RegExp(`(^|[^a-z])${norm(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}([^a-z]|$)`).test(norm(txt))){console.log(`MESSAGING FAIL: "${txt}" contains forbidden "${w}"`);failed=true}}
 // QA: one settled frame per scene + automated clipping check
 const qaFiles=[];const tq=Date.now();
+const ALPHA=!!meta.alpha;const CHECKER="repeating-conic-gradient(#5a5a5a 0% 25%, #3c3c3c 0% 50%) 0 0/48px 48px";
+if(ALPHA)await p.evaluate(c=>{document.documentElement.style.background=c},CHECKER); // QA/contact sheet over a gray checker so the overlay is visible
 for(const [i,t] of meta.qaTimes.entries()){await p.evaluate(t=>{seek(t)},t);const issues=await p.evaluate(()=>qaCheck());
   const f=path.join(out,'qa',`scene-${i+1}-${meta.scenes[i]}.png`);await p.screenshot({path:f});qaFiles.push([f,`${i+1} ${meta.scenes[i]} t=${t.toFixed(2)}s`]);
   console.log(`QA scene ${i+1} (${meta.scenes[i]}) @${t.toFixed(2)}s: ${issues.length?'FAIL':'ok'}`);issues.forEach(x=>console.log('   - '+x));if(issues.length)failed=true}
@@ -41,17 +43,23 @@ if(process.argv.includes('--motion-check')){ // sample consecutive 60fps frames 
 }
 if(failed){console.error('Motion check failed.');await b.close();srv.close();process.exit(1)}
 if(qaOnly){await b.close();srv.close();process.exit(0)}
+if(ALPHA)await p.evaluate(()=>{document.documentElement.style.background='transparent'});
 const fd=path.join(out,'frames');fs.rmSync(fd,{recursive:true,force:true});fs.mkdirSync(fd);
 const n=Math.round(meta.duration*meta.fps);const t0=Date.now();
 // Parallel frame capture: N pages, each seeks its own interleaved frames (deterministic, order-independent).
 const wArg=process.argv.find(a=>a.startsWith('--workers='));const N=Math.max(1,+(wArg?.split('=')[1]||Math.min(6,Math.max(1,Math.floor(os.cpus().length/3)))));
 const pages=[p];for(let i=1;i<N;i++){const q=await b.newPage({viewport:{width:W,height:H}});await open(q);pages.push(q)}
 let done=0;
-await Promise.all(pages.map(async(pg,w)=>{for(let i=w;i<n;i+=N){await pg.evaluate(t=>{seek(t)},i/meta.fps);await pg.screenshot({path:path.join(fd,`f${String(i).padStart(5,'0')}.png`)});if(++done%120===0)console.log(`frame ${done}/${n}`)}}));
+await Promise.all(pages.map(async(pg,w)=>{for(let i=w;i<n;i+=N){await pg.evaluate(t=>{seek(t)},i/meta.fps);await pg.screenshot({path:path.join(fd,`f${String(i).padStart(5,'0')}.png`),omitBackground:ALPHA});if(++done%120===0)console.log(`frame ${done}/${n}`)}}));
 console.log(`STAGE frames: ${n} frames, ${N} workers, ${((Date.now()-t0)/1000).toFixed(1)}s`);
 await b.close();srv.close();
 const silent=(meta.audio||'')==='none';let t1=Date.now();
 if(!silent){execFileSync(PY,[path.join(ROOT,'engines/gsap/tools/music.py'),path.join(out,'meta.json'),path.join(out,'music.wav')],{stdio:'inherit'});console.log(`STAGE music: ${((Date.now()-t1)/1000).toFixed(1)}s`)}
+if(ALPHA){ // transparent overlay: ProRes 4444 (main) + VP9 WebM with alpha, no audio
+  const base=path.join(out,path.basename(plan.output));t1=Date.now();const blend=`format=rgba,tmix=frames=${Math.round(meta.fps/meta.outFps)},fps=${meta.outFps}`;
+  execFileSync(FF,['-y','-loglevel','error','-framerate',String(meta.fps),'-i',path.join(fd,'f%05d.png'),'-vf',`${blend},format=yuva444p10le`,'-c:v','prores_ks','-profile:v','4444','-alpha_bits','16','-vendor','apl0','-pix_fmt','yuva444p10le',base+'.mov'],{stdio:'inherit'});
+  execFileSync(FF,['-y','-loglevel','error','-framerate',String(meta.fps),'-i',path.join(fd,'f%05d.png'),'-vf',`${blend},format=yuva420p`,'-c:v','libvpx-vp9','-pix_fmt','yuva420p','-b:v','0','-crf','28','-row-mt','1','-auto-alt-ref','0',base+'.webm'],{stdio:'inherit'});
+  console.log(`STAGE ffmpeg: ${((Date.now()-t1)/1000).toFixed(1)}s`);fs.rmSync(fd,{recursive:true,force:true});console.log('Rendered',base+'.mov',base+'.webm');process.exit(0)}
 const mp4=path.join(out,path.basename(plan.output)+'.mp4');t1=Date.now();
 const vf=(()=>{const post=meta.post||{glowPass:meta.theme!=='light',noise:meta.theme==='light'?2:5};const blend=`[0:v]format=gbrp,tmix=frames=${Math.round(meta.fps/meta.outFps)},fps=${meta.outFps}`;const nz=post.noise?`,noise=alls=${post.noise}:allf=t`:'';
   return post.glowPass?`${blend},split[a][b];[b]curves=all='0/0 0.7/0 1/1',gblur=sigma=${18*Math.min(W,H)/1080}[gl];[a][gl]blend=all_mode=screen:all_opacity=0.4${nz},format=yuv420p[v]`:`${blend}${nz},format=yuv420p[v]`})();

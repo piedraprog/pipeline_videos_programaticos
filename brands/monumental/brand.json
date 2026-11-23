@@ -1,0 +1,14 @@
+{
+  "name": "Liga de Béisbol Menor Monumental de Caracas",
+  "logo": { "full": "brands/monumental/logo.png", "w": 887, "h": 696, "source": "brands/monumental/logo-source.jpg (off-white background removed by edge flood fill)" },
+  "palette": { "navy": "#14213d", "wine": "#8b0a2e", "white": "#ffffff", "blueGray": "#8a9bb8", "fireOrange": "#f26a1b", "fireYellow": "#ffc93c" },
+  "fonts": {
+    "display": { "family": "Anton", "src": "engines/gsap/fonts/Anton.ttf", "transform": "uppercase" },
+    "ui": { "family": "Inter", "src": "engines/gsap/fonts/Inter.ttf", "weight": 700 }
+  },
+  "shadow": "0 4px 14px rgba(0,0,0,.45)",
+  "tagline": "Sembrando pasión, cosechando campeones",
+  "tone": { "language": "es-419", "voice": "tú (español neutro latinoamericano)" },
+  "messaging": { "forbidden": [] },
+  "production": { "voiceover": "No se genera voice over/TTS.", "introOutro": "Sin intro ni outro." }
+}
