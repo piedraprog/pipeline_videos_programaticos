@@ -119,6 +119,16 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
 4. **Motion blur.** `"fps": 240, "outFps": 30, "shutter": 180` renders 8 sub-frames per output frame and averages the 4 inside the open shutter. Use `"fps": 60` without `shutter` for fast drafts. A 30 s piece takes about 3 minutes at full quality.
 5. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
 
+## Runbook: draft narration (`bun run voice`)
+
+Synthetic voice is allowed only as an internal draft (see Delivery rules). It never replaces the recorded voice in a delivered piece.
+
+1. Keys live in `.env` (copy `.env.example`; git-ignored): `ELEVENLABS_API_KEY`, `OPENAI_API_KEY`. Never paste a key into a plan, a commit or the chat.
+2. Write one `say` line per scene in the plan (`story.intro.say`, `story.beats[].say`, `story.outro.say`) and a `voice` block: `{"provider": "elevenlabs", "elevenlabs": {"voiceId": "..."}, "openai": {"voiceId": "cedar", "instructions": "..."}}`. `bun run voice -- --list-voices` prints the ElevenLabs voices of the account.
+3. Render the plan first, then `bun run voice -- <plan>.json [--provider=openai]`. Each line starts 0.4 s into its scene. The command fails if a line would still be talking when its scene ends: shorten the line or lengthen the beat, then render again.
+4. Output: `<output>/<name>-voz-<provider>.mp4` (voice over ducked music, video untouched) and `marcas-de-tiempo.txt`. Audio is cached per line in `<output>/voice/`, so rerunning costs nothing unless the text or voice changed.
+5. The narration goes through the same forbidden-messaging gate as on-screen copy. OpenAI's usage policy requires telling listeners the voice is AI-generated.
+
 ## Public repository: private work goes in `private/`
 
 - This repository is public. Anything for a client or an unreleased product (brand kit, plan, screenshots, copy, renders) goes under `private/` (`private/brands/<client>/`, `private/plans/<name>.json`, output `private/projects/<name>`). It is git-ignored. Never create those files under `brands/`, `plans/` or `demos/`.
@@ -127,6 +137,6 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
 - Before the first private project on a machine, check that `.private-terms` exists and lists the client and project names.
 
 ## Delivery rules (Jose, 2026-10-14)
-- No se genera voice over/TTS; la locución la graba Jose. Do not synthesize or mux any voice. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
+- La locución final la graba Jose. Do not deliver a piece with synthetic voice. Exception (Jose, 2026-11-23): `bun run voice` may synthesize a draft narration for internal review; its file is named `-voz-<provider>` and is never the deliverable. For VO-led pieces deliver the no-voice version (music bed optional) timed to the script, plus a phrase-timestamps .txt as a guide.
 - Videos are delivered without intro or outro. Bumpers (`bun run bumper`) are separate assets; Jose adds them in post. Do not concatenate bumpers or use an `outro` scene at the end of a piece; end cleanly on the last content scene with the music faded out.
 - Style `playful-sticker` is deprecated/not allowed.

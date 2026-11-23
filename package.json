@@ -12,6 +12,7 @@
     "capture": "node src/capture.ts",
     "render": "bun run src/render.ts",
     "bumper": "node engines/gsap/tools/bumper.mjs",
+    "voice": "node --env-file-if-exists=.env engines/gsap/tools/voice.mjs",
     "vectorize-logo": "python3 engines/gsap/tools/vectorize_logo.py",
     "demo": "bun run capture -- plans/studio-store.json && bun run render -- studio-store",
     "test": "bun test"
