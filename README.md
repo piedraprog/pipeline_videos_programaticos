@@ -212,5 +212,7 @@ bun run bumper -- brands/selltly/brand.json projects/bumpers-selltly intro:A:9x1
 bun test
 ```
 
+For a desktop product walkthrough with a moving camera, cursor and real motion blur, start from `plans/form-product-demo.json` (`bun run render -- plans/form-product-demo.json`); the runbook is in `AGENTS.md`.
+
 `bun run render` picks the engine: a plan with `"engine":"gsap"` goes to `engines/gsap/`; a project name renders with Remotion as before.
 Brand kits live in `brands/`, styles in `styles/`, and the modular authoring prompt is in `PROMPT.md`. The agent runbook is in `AGENTS.md`.
