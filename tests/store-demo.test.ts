@@ -8,7 +8,7 @@ test('store completes a simulated purchase and decrements stock only once', asyn
     import assert from 'node:assert/strict';
     import {existsSync} from 'node:fs';
     assert.ok(existsSync('demos/studio-store/index.html'), 'Store HTML must exist');
-    const browser = await chromium.launch({headless:true});
+    const browser = await chromium.launch({headless:true,channel:'chrome',chromiumSandbox:true});
     try {
       const page = await browser.newPage({viewport:{width:390,height:844}});
       await page.goto(pathToFileURL(path.resolve('demos/studio-store/index.html')).href);

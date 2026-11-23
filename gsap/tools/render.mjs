@@ -13,7 +13,7 @@ const port=srv.address().port;
 const plan=JSON.parse(fs.readFileSync(path.join(ROOT,planArg)));
 const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[plan.format];
 const out=path.join(ROOT,plan.output);fs.mkdirSync(path.join(out,'qa'),{recursive:true});
-const b=await chromium.launch();const p=await b.newPage({viewport:{width:W,height:H}});
+const b=await chromium.launch({channel:'chrome',chromiumSandbox:true});const p=await b.newPage({viewport:{width:W,height:H}});
 p.on('pageerror',e=>console.error('page error',e));
 await p.goto(`http://localhost:${port}/template/index.html?plan=${encodeURIComponent(planArg)}`);
 await p.evaluate(()=>window.ready);

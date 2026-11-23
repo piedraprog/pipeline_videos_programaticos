@@ -7,7 +7,7 @@ const [brand,outDir,...rest]=process.argv.slice(2);const qaOnly=rest.includes('-
 const types={'.html':'text/html','.js':'text/javascript','.json':'application/json','.ttf':'font/ttf'};
 const srv=http.createServer((q,r)=>{const f=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(!f.startsWith(ROOT+path.sep)||!fs.existsSync(f)){r.writeHead(404);return r.end()}r.writeHead(200,{'content-type':types[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(r)}).listen(0);
 const out=path.resolve(ROOT,outDir);fs.mkdirSync(path.join(out,'qa'),{recursive:true});
-const b=await chromium.launch();let failed=false;
+const b=await chromium.launch({channel:'chrome',chromiumSandbox:true});let failed=false;
 for(const job of jobs){const [kind,variant,format,bg]=job.split(':');const name=`${kind}-${variant}-${format}-${bg}`;
   const [W,H]={'16x9':[1920,1080],'9x16':[1080,1920],'1x1':[1080,1080]}[format];const p=await b.newPage({viewport:{width:W,height:H}});
   p.on('pageerror',e=>{console.error(name,'page error',e.message);failed=true});
