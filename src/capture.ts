@@ -54,7 +54,7 @@ async function main() {
 
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true, channel: 'chrome', chromiumSandbox: true });
   } catch (error) {
     const platformHint = process.platform === 'win32'
       ? 'On Windows, run "bunx playwright install chromium" and ensure the installed browser matches the Playwright version.'

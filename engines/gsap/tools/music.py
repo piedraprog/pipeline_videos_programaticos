@@ -2,7 +2,7 @@
 # Beat-locked music bed synthesized in code. Style from meta["music"]: cinematic | corporate | punchy | minimal | playful.
 # Every scene cut gets an accent (hit/chime/stab) on the beat.
 import sys,json,wave,numpy as np
-m=json.load(open(sys.argv[1]));sr=48000;D=m['duration'];bpm=m['bpm'];beat=60/bpm;n=int(sr*D);t=np.arange(n)/sr
+m=json.load(open(sys.argv[1],encoding='utf-8'));sr=48000;D=m['duration'];bpm=m['bpm'];beat=60/bpm;n=int(sr*D);t=np.arange(n)/sr
 style=m.get('music','cinematic');rng=np.random.default_rng(bpm);out=np.zeros((n,2))
 cuts=m['cuts'][1:];outro=m['cuts'][m['scenes'].index('outro')] if 'outro' in m['scenes'] else D
 def add(sig,start,gain=1,pan=0):

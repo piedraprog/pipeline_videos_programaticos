@@ -24,7 +24,7 @@ const STY=await (await fetch(root+'styles/'+plan.style+'.json')).json();
 if(STY.deprecated)throw new Error('Style '+plan.style+' is deprecated');
 const W=1080,H=1920,safe={l:W*.08,r:W*.92,t:H*.09,b:H*.88};
 const C=STY.colors, P=brand.palette, E=STY.motion, S=plan.story;
-const nfmt=v=>(S.number.prefix||'')+v.toLocaleString('es-VE',{minimumFractionDigits:S.number.decimals||0,maximumFractionDigits:S.number.decimals||0});
+const nfmt=v=>((S.number||{}).prefix||'')+v.toLocaleString('es-VE',{minimumFractionDigits:(S.number||{}).decimals||0,maximumFractionDigits:(S.number||{}).decimals||0});
 document.head.appendChild(Object.assign(document.createElement('style'),{textContent:`@font-face{font-family:Inter;src:url(${root}engines/gsap/fonts/Inter.ttf) format("truetype");font-weight:100 900}`}));
 await document.fonts.load('800 100px Inter');await document.fonts.load('500 100px Inter');
 const st=document.getElementById('stage');Object.assign(st.style,{width:W+'px',height:H+'px',background:C.bg,color:C.text,fontFamily:'Inter'});
@@ -63,11 +63,12 @@ const bottom=(parent,txt,at,end)=>{const e=T(parent,txt,{size:52,y:safe.b-90,sty
 const scene=(name,a,b)=>{const el=$('div','sc',world);show(el,a,b);cuts.push(a);names.push(name);return el};
 let t=0;
 
+const icoL=$('div','abs',world,{inset:0,zIndex:2}); // shared icon layer: the problem icons travel into the hub
 // ===== 1 Problem (lines swap on beat, inline icons pop out and float)
 const A1=0,D1=S.problem.duration;const s1=scene('problem',A1,A1+D1+.6);
 const lines=S.problem.lines, step=(D1-1.2)/lines.length;const floatPos=[[170,560],[790,700],[260,1240]];const floaters=[];
 lines.forEach((ln,i)=>{const at=A1+.3+i*step;const L=T(s1,ln.text,{size:84,y:H/2-60,maxW:ln.icon?(safe.r-safe.l-120):undefined});let ic=null;
-  if(ln.icon){L.style.paddingRight='120px';const w=L.offsetWidth;L.style.left=W/2-w/2+'px';ic=icon(s1,ln.icon,96);ic.style.left=W/2+w/2-104+'px';ic.style.top=H/2-60+4+'px';floaters.push(ic);
+  if(ln.icon){L.style.paddingRight='120px';const w=L.offsetWidth;L.style.left=W/2-w/2+'px';ic=icon(icoL,ln.icon,96);ic.style.left=W/2+w/2-104+'px';ic.style.top=H/2-60+4+'px';floaters.push(ic);
     tl.fromTo(ic,{scale:0},{scale:1,duration:.5,ease:E.overshoot,immediateRender:true},at+.15);
     const [fx,fy]=floatPos[floaters.length-1];tl.to(ic,{left:fx,top:fy,scale:1.45,duration:.9,ease:E.camera},at+step-.25)}
   tl.fromTo(L,{yPercent:60,opacity:0,filter:'blur(10px)'},{yPercent:0,opacity:1,filter:'blur(0px)',duration:.5,ease:E.enter,immediateRender:true},at);
@@ -85,16 +86,16 @@ const hubImg=img(hub,brand.logo.icon.onLight,{width:'150px',position:'relative'}
 const nodes=S.hub.nodes;const nodeEls=[];
 nodes.forEach((n,i)=>{const ang=-Math.PI/2+i*Math.PI*2/nodes.length;const x=CX+Rr*Math.cos(ang),y=CY+Rr*Math.sin(ang);
   const ln=document.createElementNS('http://www.w3.org/2000/svg','line');Object.entries({x1:CX,y1:CY,x2:x,y2:y,stroke:'#111','stroke-opacity':.22,'stroke-width':3,'stroke-dasharray':Rr,'stroke-dashoffset':Rr}).forEach(([k,v])=>ln.setAttribute(k,v));svg.appendChild(ln);
-  const ic=icon(s2,n.icon,120);ic.style.left=x-60+'px';ic.style.top=y-60+'px';
+  const reuse=i<floaters.length;const ic=reuse?floaters[i]:icon(s2,n.icon,120);if(!reuse){ic.style.left=x-60+'px';ic.style.top=y-60+'px';}
   const lab=T(s2,n.label,{size:28,y:y+72,style:{fontWeight:600,letterSpacing:'-.01em',color:'#444'}});lab.style.left=x-lab.offsetWidth/2+'px';
   const at=A2+.25+i*.12;
   // the first three come from the floating problem icons' area (continuity), the rest pop in
-  tl.fromTo(ic,{x:(i<3?(floatPos[i][0]+70-x):0),y:(i<3?(floatPos[i][1]+70-y):0),scale:i<3?1.2:0},{x:0,y:0,scale:1,duration:.75,ease:E.overshoot,immediateRender:true},at);
+  if(reuse)tl.to(ic,{left:x-48,top:y-48,scale:1.25,duration:.75,ease:E.overshoot},at);
+  else tl.fromTo(ic,{scale:0},{scale:1,duration:.75,ease:E.overshoot,immediateRender:true},at);
   tl.to(ln,{attr:{'stroke-dashoffset':0},duration:.6,ease:'power2.out'},at+.45);
   tl.fromTo(lab,{opacity:0,y:12},{opacity:1,y:0,duration:.4,immediateRender:true},at+.6);nodeEls.push(ic,lab)});
-floaters.forEach(f=>tl.to(f,{opacity:0,duration:.25},A2+.25));
 tl.fromTo(hub,{scale:0,rotation:-30},{scale:1,rotation:0,duration:.8,ease:E.overshoot,immediateRender:true},A2+.1);
-const top2=T(s2,S.hub.kicker,{size:26,y:safe.t+150,style:{fontWeight:700,letterSpacing:'.22em',color:P.crimson}});tl.fromTo(top2,{opacity:0,y:-14},{opacity:1,y:0,duration:.5,immediateRender:true},A2+.5);
+const top2=T(s2,S.hub.kicker||'',{size:26,y:safe.t+150,style:{fontWeight:700,letterSpacing:'.22em',color:P.crimson}});if(!S.hub.kicker){top2.style.display='none';textEls.splice(textEls.indexOf(top2),1)}tl.fromTo(top2,{opacity:0,y:-14},{opacity:1,y:0,duration:.5,immediateRender:true},A2+.5);
 bottom(s2,S.hub.bottom,A2+1.2,A2+D2-.1);island(S.hub.island,A2+.6);qaTimes.push(A2+2.6);
 // zoom into the center logo (Z push)
 tl.to([svg,...nodeEls,top2],{opacity:0,duration:.45,ease:'power2.in'},A2+D2-.55);
@@ -120,7 +121,7 @@ const toasts=S.store.toasts.map((tx,i)=>{const e=$('div','toast',s3,{left:W/2+'p
   textEls.push(e);e.style.left=W/2-e.offsetWidth/2+'px';tl.fromTo(e,{y:-30,opacity:0,scale:.85},{y:0,opacity:1,scale:1,duration:.55,ease:E.overshoot,immediateRender:true},A3+3.5+i*.28);return e});
 tl.to(phone,{opacity:.35,filter:'blur(6px)',duration:.6},A3+3.5);
 bottom(s3,S.store.bottom,A3+.8,A3+D3-.1);island(S.store.island,A3+.4);island(S.store.island2,A3+3.5);qaTimes.push(A3+4.6);
-tl.to(toasts.slice(1),{opacity:0,y:30,duration:.35,ease:'power2.in'},A3+D3-.6);tl.to(phone,{opacity:0,duration:.4},A3+D3-.5);
+tl.to(toasts.slice(1),{opacity:0,y:30,duration:.35,ease:'power2.in'},A3+D3-.6);tl.to([phone,btn],{opacity:0,duration:.4},A3+D3-.5);
 // zoom into the first toast -> it becomes the dark scene
 tl.to(toasts[0],{scale:9,opacity:0,backgroundColor:C.dark,duration:.8,ease:E.camera},A3+D3-.55);
 tl.to(dark,{opacity:1,duration:.5,ease:'power2.inOut'},A3+D3-.35);
@@ -131,19 +132,21 @@ const cw=860,cx0=W/2-cw/2,cy0=safe.t+150;
 const head=$('div','abs',s4,{left:cx0+'px',top:cy0+'px',width:cw+'px',height:'110px',borderRadius:'28px',background:'#1c1c1e',display:'flex',alignItems:'center',gap:'20px',padding:'0 28px'});
 const av=$('div','',head,{width:'66px',height:'66px',borderRadius:'50%',background:P.yellow,color:'#111',fontWeight:800,fontSize:'26px',display:'flex',alignItems:'center',justifyContent:'center'},S.chat.initials);
 const hn=$('div','',head,{color:'#fff',fontSize:'32px',fontWeight:700},S.chat.name);textEls.push(hn);
-const bub=$('div','abs',s4,{left:cx0+'px',top:cy0+150+'px',width:'640px',borderRadius:'30px',background:'#26262a',color:'#f2f2f2',padding:'30px 34px',fontSize:'30px',lineHeight:1.45,border:'3px solid transparent'});
+const bub=$('div','abs',s4,{left:cx0+'px',top:cy0+290+'px',width:'640px',borderRadius:'30px',background:'#26262a',color:'#f2f2f2',padding:'30px 34px',fontSize:'30px',lineHeight:1.45,border:'3px solid transparent'});
 S.chat.lines.forEach(l=>{const d=$('div','',bub,{fontWeight:l.startsWith('*')?800:500,minHeight:'.6em',whiteSpace:'pre'},l.replace(/\*/g,''))});textEls.push(bub);
-const chk=$('div','abs',s4,{left:cx0+500+'px',top:cy0+130+'px',height:'64px',padding:'0 26px',borderRadius:'32px',background:C.live,color:'#fff',fontSize:'28px',fontWeight:800,display:'flex',alignItems:'center',opacity:0,whiteSpace:'nowrap'},'✓ '+S.chat.done);textEls.push(chk);
-const ring4=$('div','abs',s4,{width:'110px',height:'110px',borderRadius:'50%',border:'5px solid #fff',opacity:0,left:cx0+320-55+'px',top:cy0+420+'px'});
+const card=$('div','abs',s4,{left:cx0+'px',top:cy0+150+'px',width:cw+'px',height:'92px',borderRadius:'24px',background:'#1c1c1e',color:'#fff',display:'flex',alignItems:'center',gap:'16px',padding:'0 28px',fontSize:'32px',fontWeight:700,whiteSpace:'nowrap',border:'3px solid transparent'});$('span','dot',card,{width:'16px',height:'16px',background:C.live,flex:'0 0 16px'});$('span','',card,null,S.chat.summary);textEls.push(card);
+tl.fromTo(card,{y:-30,opacity:0},{y:0,opacity:1,duration:.6,ease:E.overshoot,immediateRender:true},A4+.25);
+const chk=$('div','abs',s4,{left:cx0+500+'px',top:cy0+270+'px',height:'64px',padding:'0 26px',borderRadius:'32px',background:C.live,color:'#fff',fontSize:'28px',fontWeight:800,display:'flex',alignItems:'center',opacity:0,whiteSpace:'nowrap'},'✓ '+S.chat.done);textEls.push(chk);
+const ring4=$('div','abs',s4,{width:'110px',height:'110px',borderRadius:'50%',border:'5px solid #fff',opacity:0,left:cx0+320-55+'px',top:cy0+460+'px'});
 tl.fromTo(head,{y:-40,opacity:0},{y:0,opacity:1,duration:.6,immediateRender:true},A4);
 tl.fromTo(bub,{scale:.6,opacity:0,y:60},{scale:1,opacity:1,y:0,duration:.7,ease:E.overshoot,immediateRender:true},A4+.45);
-tl.fromTo(ring4,{scale:.2,opacity:1},{scale:1.6,opacity:0,duration:.6,ease:'expo.out',immediateRender:true},A4+2.2);
-tl.to(bub,{borderColor:C.live,background:'#163322',duration:.35},A4+2.25);
+tl.fromTo(ring4,{scale:.2,opacity:1},{scale:1.6,opacity:0,duration:.6,ease:'expo.out',immediateRender:false},A4+2.2);
+tl.to([bub,card],{borderColor:C.live,background:'#163322',duration:.35},A4+2.25);
 tl.fromTo(chk,{scale:0,opacity:0},{scale:1,opacity:1,duration:.5,ease:E.overshoot,immediateRender:true},A4+2.35);
 tl.to([bub,chk],{x:-900,opacity:0,duration:.6,ease:'power3.in'},A4+3.6);
 const b4=bottom(s4,S.chat.bottom,A4+.9,A4+D4-.1);b4.style.color='#fff';
 island(S.chat.island,A4+.5);island(S.chat.island2,A4+2.3);qaTimes.push(A4+3);
-tl.to(head,{opacity:0,y:-30,duration:.4,ease:'power2.in'},A4+D4-.5);
+tl.to([head,card],{opacity:0,y:-30,duration:.4,ease:'power2.in'},A4+D4-.5);
 tl.to(dark,{opacity:0,duration:.6,ease:'power2.inOut'},A4+D4-.4);
 
 // ===== 5 Admin (desktop + phone slide up)
@@ -153,7 +156,7 @@ const desk=$('div','abs',s5,{left:dx+'px',top:dy+'px',width:dw+'px',height:dh+40
 const bar=$('div','abs',desk,{left:0,top:0,right:0,height:'40px',display:'flex',alignItems:'center',gap:'8px',padding:'0 16px'});for(let i=0;i<3;i++)$('i','dot',bar,{width:'12px',height:'12px',background:'#3a3236'});
 const dscr=$('div','scr',desk,{left:0,top:'40px',width:dw+'px',height:dh+'px'});const a1=img(dscr,S.admin.shots[0],{}),a2=img(dscr,S.admin.shots[1],{opacity:0}),a3=img(dscr,S.admin.shots[2],{opacity:0});
 const kk=.62,mp=$('div','abs',s5,{left:W-safe.l-390*kk+20+'px',top:dy+dh-40+'px',width:390*kk+20+'px',height:844*kk*.62+20+'px',borderRadius:'40px',background:'#111',boxShadow:'0 30px 80px rgba(17,17,17,.25)'});
-const mscr=$('div','scr',mp,{left:'10px',top:'10px',width:390*kk+'px',height:844*kk*.62+'px',borderRadius:'32px'});img(mscr,S.admin.phone,{});
+const mscr=$('div','scr',mp,{left:'10px',top:'10px',width:390*kk+'px',height:844*kk*.62+'px',borderRadius:'32px'});if(S.admin.phone)img(mscr,S.admin.phone,{});else mp.style.display='none';
 tl.fromTo(desk,{y:500,opacity:0,scale:.9},{y:0,opacity:1,scale:1,duration:.9,ease:E.overshoot,immediateRender:true},A5-.3);
 tl.fromTo(mp,{y:600,opacity:0},{y:0,opacity:1,duration:.9,ease:E.overshoot,immediateRender:true},A5-.05);
 const ring5=$('div','abs',s5,{width:'80px',height:'80px',borderRadius:'50%',border:`5px solid ${P.crimson}`,opacity:0,zIndex:3});
@@ -164,7 +167,8 @@ island(S.admin.island,A5+1.45);island(S.admin.island2,A5+2.75);bottom(s5,S.admin
 tl.to([desk,mp],{opacity:0,scale:.92,duration:.5,ease:'power2.in'},A5+D5-.5);
 
 // ===== 6 Push-in on a real number (counts up)
-const A6=A5+D5,D6=S.number.duration;const s6=scene('number',A6-.2,A6+D6+.4);
+const A6=A5+D5,D6=S.number?S.number.duration:0;
+if(S.number){const s6=scene('number',A6-.2,A6+D6+.4);
 const lab6=T(s6,S.number.label,{size:34,y:H/2-200,style:{fontWeight:600,letterSpacing:'-.01em',color:'#555'}});
 const num=T(s6,nfmt(S.number.value),{size:190,y:H/2-110,maxW:(safe.r-safe.l)*.86,style:{letterSpacing:'-.05em'}});num.style.width=num.offsetWidth+2+'px';num.style.textAlign='center';num.style.transformOrigin='50% 50%';num.className='t num';
 counter={el:num,a:A6+.1,d:1.6,v:S.number.value,fmt:nfmt};
@@ -175,6 +179,7 @@ tl.fromTo(num,{scale:1},{scale:1.12,duration:D6,ease:'sine.inOut',immediateRende
 island(S.number.island,A6+.4);qaTimes.push(A6+2);
 tl.to([num,lab6,sub6],{scale:.1,opacity:0,duration:.6,ease:E.camera},A6+D6-.5);
 
+}
 // ===== 7 Collapse to the logo, ripple, brand lockup
 const A7=A6+D6,D7=S.brand.duration;const s7=scene('brand',A7-.3,null);
 const lc=$('div','abs',s7,{left:W/2-90+'px',top:H/2-150+'px',width:'180px',height:'180px'});const lci=img(lc,brand.logo.icon.onLight,{width:'180px'});
@@ -183,7 +188,7 @@ const word=img(s7,brand.logo.full.onLight,{position:'absolute',width:'640px',lef
 const tag=T(s7,S.brand.tagline,{size:58,y:H/2+60,style:{fontWeight:800}});
 const feat=T(s7,S.brand.features,{size:26,y:H/2+170,style:{fontWeight:700,letterSpacing:'.14em',color:P.crimson}});
 tl.fromTo(lc,{scale:0,rotation:-60},{scale:1,rotation:0,duration:.7,ease:E.overshoot,immediateRender:true},A7-.3);
-tl.fromTo(rip,{scale:.3,opacity:.9},{scale:2.2,opacity:0,duration:1,ease:'expo.out',immediateRender:true},A7+.25);
+tl.fromTo(rip,{scale:.3,opacity:.9},{scale:2.2,opacity:0,duration:1,ease:'expo.out',immediateRender:false},A7+.25);
 // logo shifts left and resolves into the full lockup (icon + wordmark)
 tl.to(lc,{x:-320+90-(-0),scale:192/180*.95,duration:.7,ease:E.camera},A7+.8);
 tl.to(lc,{opacity:0,duration:.2},A7+1.45);
