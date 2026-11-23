@@ -13,8 +13,10 @@ async function main() {
   // `render -- plans/<plan>.json [--qa-only|--motion-check]` dispatches on plan.engine ("gsap" | "remotion").
   const arg = process.argv[2];
   if (arg?.endsWith('.json')) {
-    const plan = JSON.parse(await readFile(path.resolve(rootDir, arg), 'utf8')) as { engine?: string; projectName?: string };
-    if (plan.engine === 'gsap') return runNode(['engines/gsap/tools/render.mjs', arg, ...process.argv.slice(3)]);
+    const plan = JSON.parse(await readFile(path.resolve(rootDir, arg), 'utf8')) as { engine?: string; projectName?: string; renderer?: string };
+    const flags = process.argv.slice(3);
+    const canvas = plan.renderer === 'canvas' || flags.includes('--renderer=canvas');
+    if (plan.engine === 'gsap') return runNode([`engines/gsap/tools/${canvas ? 'render-canvas' : 'render'}.mjs`, arg, ...flags.filter((flag) => flag !== '--renderer=canvas')]);
     if (!plan.projectName) throw new Error(`${arg}: plan has neither engine "gsap" nor a projectName.`);
     process.argv[2] = plan.projectName;
   }

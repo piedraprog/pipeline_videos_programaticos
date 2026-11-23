@@ -79,12 +79,11 @@ export function createTrack(initial) {
   };
 }
 
-// Virtual camera over a `world` element laid out in stage pixels. The stage needs CSS `perspective`.
-export function createCamera({ world, width, height, drift = { pan: 5, tilt: 0.3 } }) {
-  const home = { x: width / 2, y: height / 2, zoom: 1, tiltX: 0, tiltY: 0, roll: 0 };
-  const track = createTrack(home);
-  world.style.transformOrigin = '0 0';
+const DEFAULT_DRIFT = { pan: 5, tilt: 0.3 };
 
+// Camera pose over time, with no rendering attached: a renderer asks `at(time)` and draws.
+export function createCameraPath({ width, height, drift = DEFAULT_DRIFT }) {
+  const track = createTrack({ x: width / 2, y: height / 2, zoom: 1, tiltX: 0, tiltY: 0, roll: 0 });
   return {
     track,
     // Camera pose that fits `rect` (world px) inside `fill` of the frame.
@@ -106,35 +105,43 @@ export function createCamera({ world, width, height, drift = { pan: 5, tilt: 0.3
       track.to({ zoom }, at + duration / 2, duration / 2, 'glide');
       return this;
     },
-    apply(time) {
+    at(time) {
       const state = track.at(time);
       // Handheld-style float so a hold never looks frozen; scaled down as the camera zooms in.
-      const x = state.x + (Math.sin(time * 0.55) * drift.pan) / state.zoom;
-      const y = state.y + (Math.cos(time * 0.43) * drift.pan * 0.6) / state.zoom;
-      const tiltX = state.tiltX + Math.sin(time * 0.31 + 1.3) * drift.tilt;
-      const tiltY = state.tiltY + Math.sin(time * 0.37) * drift.tilt;
-      world.style.transform =
-        `translate(${width / 2}px,${height / 2}px) rotateX(${tiltX.toFixed(3)}deg) rotateY(${tiltY.toFixed(3)}deg) ` +
-        `rotate(${state.roll.toFixed(3)}deg) scale(${state.zoom.toFixed(5)}) translate(${(-x).toFixed(2)}px,${(-y).toFixed(2)}px)`;
-      return { ...state, x, y, tiltX, tiltY };
+      return {
+        ...state,
+        x: state.x + (Math.sin(time * 0.55) * drift.pan) / state.zoom,
+        y: state.y + (Math.cos(time * 0.43) * drift.pan * 0.6) / state.zoom,
+        tiltX: state.tiltX + Math.sin(time * 0.31 + 1.3) * drift.tilt,
+        tiltY: state.tiltY + Math.sin(time * 0.37) * drift.tilt,
+      };
     },
   };
 }
 
-const CURSOR_SVG =
-  '<svg viewBox="0 0 28 28" width="40" height="40" style="overflow:visible;filter:drop-shadow(0 3px 5px rgba(0,0,0,.28))">' +
-  '<path d="M5 3l17 9.2-7.3 1.9L18.9 22l-3.6 1.8-4-7.8L5 21z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+// Virtual camera over a `world` element laid out in stage pixels. The stage needs CSS `perspective`.
+export function createCamera({ world, width, height, drift = DEFAULT_DRIFT }) {
+  const path = createCameraPath({ width, height, drift });
+  world.style.transformOrigin = '0 0';
+  return {
+    track: path.track,
+    frame: path.frame,
+    moveTo(...args) {
+      path.moveTo(...args);
+      return this;
+    },
+    apply(time) {
+      const pose = path.at(time);
+      world.style.transform =
+        `translate(${width / 2}px,${height / 2}px) rotateX(${pose.tiltX.toFixed(3)}deg) rotateY(${pose.tiltY.toFixed(3)}deg) ` +
+        `rotate(${pose.roll.toFixed(3)}deg) scale(${pose.zoom.toFixed(5)}) translate(${(-pose.x).toFixed(2)}px,${(-pose.y).toFixed(2)}px)`;
+      return pose;
+    },
+  };
+}
 
-// Pointer that travels on curved paths and presses on click. Lives in world space, keeps screen size.
-export function createCursor({ parent, color, start }) {
-  const element = document.createElement('div');
-  element.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;z-index:50;opacity:0';
-  element.innerHTML =
-    `<div data-ring style="position:absolute;left:-36px;top:-36px;width:72px;height:72px;border-radius:50%;border:3px solid ${color};background:${color}26;opacity:0"></div>` +
-    `<div data-arrow style="position:absolute;left:-6px;top:-4px;transform-origin:6px 4px">${CURSOR_SVG}</div>`;
-  parent.append(element);
-  const ring = element.querySelector('[data-ring]');
-  const arrow = element.querySelector('[data-arrow]');
+// Pointer position, press and click ring over time, with no rendering attached.
+export function createCursorPath({ start }) {
   const moves = [];
   const clicks = [];
   const visibility = createTrack({ opacity: 0 });
@@ -165,7 +172,7 @@ export function createCursor({ parent, color, start }) {
         clicks.some((at) => time >= at - 0.08 && time <= at + 0.6)
       );
     },
-    apply(time, zoom) {
+    at(time) {
       let position = start;
       for (const [index, move] of moves.entries()) {
         if (time < move.at) break;
@@ -196,11 +203,52 @@ export function createCursor({ parent, color, start }) {
           ringOpacity = 1 - spread;
         }
       }
-      element.style.opacity = visibility.at(time).opacity.toFixed(3);
-      element.style.transform = `translate(${position.x.toFixed(2)}px,${position.y.toFixed(2)}px) scale(${(1 / zoom).toFixed(5)})`;
-      arrow.style.transform = `scale(${press.toFixed(4)})`;
-      ring.style.opacity = ringOpacity.toFixed(3);
-      ring.style.transform = `scale(${ringScale.toFixed(4)})`;
+      return { x: position.x, y: position.y, opacity: visibility.at(time).opacity, press, ringScale, ringOpacity };
+    },
+  };
+}
+
+const CURSOR_SVG =
+  '<svg viewBox="0 0 28 28" width="40" height="40" style="overflow:visible;filter:drop-shadow(0 3px 5px rgba(0,0,0,.28))">' +
+  '<path d="M5 3l17 9.2-7.3 1.9L18.9 22l-3.6 1.8-4-7.8L5 21z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+
+// Pointer that travels on curved paths and presses on click. Lives in world space, keeps screen size.
+export function createCursor({ parent, color, start }) {
+  const element = document.createElement('div');
+  element.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;z-index:50;opacity:0';
+  element.innerHTML =
+    `<div data-ring style="position:absolute;left:-36px;top:-36px;width:72px;height:72px;border-radius:50%;border:3px solid ${color};background:${color}26;opacity:0"></div>` +
+    `<div data-arrow style="position:absolute;left:-6px;top:-4px;transform-origin:6px 4px">${CURSOR_SVG}</div>`;
+  parent.append(element);
+  const ring = element.querySelector('[data-ring]');
+  const arrow = element.querySelector('[data-arrow]');
+  const path = createCursorPath({ start });
+
+  return {
+    show(at) {
+      path.show(at);
+      return this;
+    },
+    hide(at) {
+      path.hide(at);
+      return this;
+    },
+    moveTo(...args) {
+      path.moveTo(...args);
+      return this;
+    },
+    click(at) {
+      path.click(at);
+      return this;
+    },
+    isBusy: path.isBusy,
+    apply(time, zoom) {
+      const pointer = path.at(time);
+      element.style.opacity = pointer.opacity.toFixed(3);
+      element.style.transform = `translate(${pointer.x.toFixed(2)}px,${pointer.y.toFixed(2)}px) scale(${(1 / zoom).toFixed(5)})`;
+      arrow.style.transform = `scale(${pointer.press.toFixed(4)})`;
+      ring.style.opacity = pointer.ringOpacity.toFixed(3);
+      ring.style.transform = `scale(${pointer.ringScale.toFixed(4)})`;
     },
   };
 }

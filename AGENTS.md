@@ -122,7 +122,12 @@ A 16:9 walkthrough of a desktop web app: the product sits in a browser window an
    - A still frame is captured once instead of once per blur sample. The template reports motion through `window.isMoving(t)`; a template without it gets every sample captured.
    - Four capture pages is the measured optimum (`--workers=N` overrides). More pages are slower because they share one GPU process.
    - `"supersample": 2` captures at twice the resolution and scales down for sharper text, at roughly 3.5x the capture time; `"crf"` sets the compression (default 17, lower is better). Iterate without them and add them for the final render. `"outputHeight": 720` delivers 720p from the same 1080p capture.
-6. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
+6. **Canvas renderer (use it for `demo` plans).** `"renderer": "canvas"` in the plan, or `--renderer=canvas`, draws the same choreography with WebGL and encodes H.264 inside the browser (`engines/gsap/demo-canvas.html`, `lib/demoScene.js`, `tools/render-canvas.mjs`). No screenshots and no ffmpeg encode: an 86 s 1080p piece renders in about half a minute on a laptop with a GPU.
+   - Each scene is its own clip in `<output>/clip-cache/`, keyed by what it shows; the video is the clips joined without re-encoding. Changing one scene renders one clip; changing narration, music or volume renders none. `--fresh` ignores the cache.
+   - Quality is constant-quantizer on a hardware encoder (`"videoQuantizer"`, default 22, lower is sharper and larger) and falls back to `"videoBitrate"` without one. `"outputHeight": 720` renders natively at 720p.
+   - Differences from the DOM template: caption cards are flat translucent (no backdrop blur), the window does not blur as it leaves in the outro, and words rise without the slight rotation. `supersample` and `crf` do not apply.
+   - `lib/demoScene.js` is the single description of the choreography for this renderer and is pure: change timing there, not in the page.
+7. **Run** `--qa-only`, read the contact sheet, then render. Then extract frames around every camera move and screen change and look at them; a passing QA does not prove the motion reads well.
 
 ## Runbook: draft narration (`bun run voice`)
 
