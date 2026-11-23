@@ -1,9 +1,13 @@
 {
   "name": "pipeline_videos_programaticos",
+  "description": "Programmatic video pipeline: JSON plans rendered to MP4 with GSAP or Remotion, Playwright capture and automated QA gates.",
+  "license": "MIT",
+  "repository": "github:piedraprog/pipeline_videos_programaticos",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
+    "privacy-check": "node scripts/privacy-check.ts",
     "setup": "node scripts/setup.mjs",
     "capture": "node src/capture.ts",
     "render": "bun run src/render.ts",
