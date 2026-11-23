@@ -12,7 +12,7 @@ html,body{overflow:hidden;background:#000}
 .scr{position:absolute;overflow:hidden;background:#fafaf9}
 .scr img{position:absolute;left:0;top:0;width:100%}
 </style></head><body><div id="stage"></div>
-<script src="lib/gsap.min.js"></script>
+<script src="../../node_modules/gsap/dist/gsap.min.js"></script>
 <script>
 const q=new URLSearchParams(location.search);
 const $=(tag,cls,parent,style,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(style)Object.assign(e.style,style);if(txt!=null)e.textContent=txt;if(parent)parent.appendChild(e);return e};
