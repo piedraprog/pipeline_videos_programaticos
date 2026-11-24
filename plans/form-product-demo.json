@@ -1,6 +1,7 @@
 {
   "engine": "gsap",
   "template": "demo",
+  "renderer": "canvas",
   "brand": "brands/form/brand.json",
   "style": "soft-depth",
   "format": "16x9",

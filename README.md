@@ -10,8 +10,8 @@ Make product videos from a JSON plan: real screens captured from a web app, a mo
 
 ```bash
 bun run setup                                                        # dependencies, Chromium, ffmpeg, Python packages, git hooks
-bun run render -- plans/form-product-demo.json --renderer=canvas --qa-only   # one still per scene + contact sheet
-bun run render -- plans/form-product-demo.json --renderer=canvas             # projects/form-product-demo/form-product-demo.mp4
+bun run render -- plans/form-product-demo.json --qa-only   # one still per scene + contact sheet
+bun run render -- plans/form-product-demo.json             # projects/form-product-demo/form-product-demo.mp4
 ```
 
 The example uses FORM, a fictional store that ships with the repository. To make your own:
@@ -20,7 +20,7 @@ The example uses FORM, a fictional store that ships with the repository. To make
 2. Write a plan with `intro`, `beats` and `outro`; each beat points the camera, cursor and spotlight at boxes by name.
 3. Optional narration: add a `say` line per scene and a `voice` block, put `ELEVENLABS_API_KEY` or `OPENAI_API_KEY` in `.env` (see `.env.example`), then `bun run voice -- <plan>.json`.
 
-Changes are cheap by design: narration, music and volume never re-render the picture, and a change inside one scene re-renders one clip. The full working format, plan fields and choreography rules are in [AGENTS.md](AGENTS.md).
+Changes are cheap by design: narration, music and volume never re-render the picture, and a change inside one scene re-renders one clip. The step-by-step guide, in Spanish, is [TUTORIAL.md](TUTORIAL.md): how it works, how an AI agent works in the repository, configuration, making a video and narration with ElevenLabs. The rules for agents, plan fields and choreography are in [AGENTS.md](AGENTS.md).
 
 You need Bun 1.3+, Node.js 24+, Python 3.10+ and Google Chrome. Hardware video encoding is used when the machine has it.
 

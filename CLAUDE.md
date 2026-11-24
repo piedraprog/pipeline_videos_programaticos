@@ -1,6 +1,6 @@
 # Claude instructions
 
-The working rules for this repository are in `AGENTS.md`, shared by every coding agent. Read it before making a video or changing the pipeline; start with its "Working format" section.
+The working rules for this repository are in `AGENTS.md`, shared by every coding agent. Read it before making a video or changing the pipeline; start with its "Working format" section. `TUTORIAL.md` is the same workflow explained for a person, in Spanish.
 
 @AGENTS.md
 
