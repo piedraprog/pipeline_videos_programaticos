@@ -1,5 +1,7 @@
 # Cómo crear tus videos
 
+> Esta guía cubre el motor original (capturas compuestas con Remotion en un marco de teléfono). Para videos de producto en 16:9 con cámara, cursor y narración, sigue [TUTORIAL.md](TUTORIAL.md).
+
 ## 1\. Entiende las cuatro piezas
 
 | Pieza                            | Para qué sirve                                                     |
